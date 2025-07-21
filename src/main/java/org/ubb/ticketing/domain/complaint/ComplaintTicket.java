@@ -2,10 +2,14 @@ package org.ubb.ticketing.domain.complaint;
 
 
 import jakarta.persistence.Entity;
-import lombok.*;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.ManyToOne;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 import org.ubb.ticketing.domain.Ticket;
 import org.ubb.ticketing.domain.TicketType;
-import org.ubb.ticketing.domain.complaint.ComplaintType;
 import org.ubb.ticketing.domain.user.TicketingUser;
 
 import java.time.LocalDateTime;
@@ -14,10 +18,10 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Builder
-public class ComplaintTicket extends Ticket {
+public class ComplaintTicket extends Ticket<Complaint> {
 
 
-    private TicketingUser createdBy;
+    @Enumerated(EnumType.STRING)
     private ComplaintType complaintType;
 
     public ComplaintTicket() {
@@ -25,11 +29,6 @@ public class ComplaintTicket extends Ticket {
         super.setCreatedWhen(LocalDateTime.now());
     }
 
-
-    private ComplaintSolutionType complaintSolutionType;
-    private String solutionDescription;
-    private TicketingUser closedBy;
-    private LocalDateTime closedWhen;
 
 
 
