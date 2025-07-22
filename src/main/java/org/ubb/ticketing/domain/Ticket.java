@@ -2,16 +2,21 @@ package org.ubb.ticketing.domain;
 
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.ubb.ticketing.domain.user.TicketingUser;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @MappedSuperclass
 @Getter
 @Setter
-public abstract class Ticket<T> {
+@ToString
+@EqualsAndHashCode
+@SuperBuilder
+@NoArgsConstructor
+public abstract class Ticket implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,21 +24,33 @@ public abstract class Ticket<T> {
 
 
     @Enumerated
+    @NonNull
     private TicketType ticketType;
 
+    @ManyToOne
+    private TicketElement ticketElement;
+    @NonNull
     private LocalDateTime createdWhen;
 
+    @NonNull
     @ManyToOne
     private TicketingUser createdBy;
 
     private String description;
 
+    @NonNull
     @Enumerated(EnumType.STRING)
     private TicketStatus ticketStatus;
 
+    @NonNull
+    private Integer slaHours;
+    @ManyToOne
+    private TicketingUser assignedTo;
+    private LocalDateTime assignedWhen;
 
+    @ManyToOne
+    private SolutionType solutionType;
 
-    private SolutionTypes solutionTypes;
     private String solutionDescription;
     @ManyToOne
     private TicketingUser closedBy;

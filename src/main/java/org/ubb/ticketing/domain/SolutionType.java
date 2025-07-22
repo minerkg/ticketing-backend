@@ -1,4 +1,4 @@
-package org.ubb.ticketing.domain.user;
+package org.ubb.ticketing.domain;
 
 
 import jakarta.persistence.Entity;
@@ -7,22 +7,21 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.*;
 
-import java.io.Serializable;
-
 @Entity
 @Getter
 @Setter
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class TicketingUser implements Serializable {
-
+@AllArgsConstructor
+@Builder
+public class SolutionType {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long userId;
+    private Long id;
 
-    private String userName;
+    private String name;
+
+
 
 
 }
