@@ -1,4 +1,4 @@
-package org.ubb.ticketing.Exceptions;
+package org.ubb.ticketing.exception;
 
 public class TicketingSystemException extends RuntimeException {
 

@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.ubb.ticketing.Exceptions.TicketingSystemException;
+import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.domain.complaint.ComplaintTicket;
 import org.ubb.ticketing.service.ComplaintTicketService;
 
