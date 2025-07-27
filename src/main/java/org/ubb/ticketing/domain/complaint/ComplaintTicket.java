@@ -6,10 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import org.ubb.ticketing.domain.Ticket;
-import org.ubb.ticketing.domain.TicketStatus;
 import org.ubb.ticketing.domain.TicketType;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -22,15 +19,17 @@ public class ComplaintTicket extends Ticket {
         super(builder);
     }
 
+    public ComplaintTicket() {
+
+    }
+
 
     public static class ComplaintTicketBuilderImpl extends ComplaintTicketBuilder<ComplaintTicket, ComplaintTicketBuilderImpl> {
         @Override
         public ComplaintTicket build() {
             var ct = new ComplaintTicket(this);
             ct.setTicketType(TicketType.COMPLAINT);
-            ct.setCreatedWhen(LocalDateTime.now());
             ct.setSlaHours(720);
-            ct.setTicketStatus(TicketStatus.NEW);
             return ct;
         }
     }
