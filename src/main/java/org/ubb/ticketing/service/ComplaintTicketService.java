@@ -9,6 +9,7 @@ import org.ubb.ticketing.domain.SolutionType;
 import org.ubb.ticketing.domain.TicketStatus;
 import org.ubb.ticketing.domain.complaint.ComplaintTicket;
 import org.ubb.ticketing.domain.user.TicketingUser;
+import org.ubb.ticketing.domain.validator.ComplaintTicketValidator;
 import org.ubb.ticketing.exception.TicketNotFoundException;
 import org.ubb.ticketing.repository.ComplaintTicketRepository;
 
@@ -21,10 +22,13 @@ public class ComplaintTicketService {
 
 
     private final ComplaintTicketRepository complaintTicketRepository;
+    private final ComplaintTicketValidator complaintTicketValidator;
     private final Logger logger = LoggerFactory.getLogger(ComplaintTicketService.class);
 
-    public ComplaintTicketService(ComplaintTicketRepository complaintTicketRepository) {
+    public ComplaintTicketService(ComplaintTicketRepository complaintTicketRepository,
+                                  ComplaintTicketValidator complaintTicketValidator) {
         this.complaintTicketRepository = complaintTicketRepository;
+        this.complaintTicketValidator = complaintTicketValidator;
     }
 
 
@@ -44,6 +48,7 @@ public class ComplaintTicketService {
 
     public ComplaintTicket save(ComplaintTicket complaintTicket) {
         logger.debug("save complaint ticket accessed in service");
+        complaintTicketValidator.validate(complaintTicket);
         return complaintTicketRepository.save(complaintTicket);
     }
 
@@ -90,6 +95,10 @@ public class ComplaintTicketService {
 //                        () -> new UserNotFoundException("No user with name " + assignedTo)
 //                );
         //TODO: check if the current user is the assigned user otherwise notify the user
+
+        //TODO: enable editing description
+        //TODO: enable editing element
+
 
         ticket.setTicketStatus(TicketStatus.IN_PROGRESS);
         return ticket;
