@@ -7,9 +7,9 @@ import org.ubb.ticketing.domain.complaint.ComplaintTicket;
 @Component
 public class TicketFactory {
 
-    public Ticket createTicket(TicketType type) {
+    public static Ticket createTicket(TicketType type) {
         return switch (type) {
-            case COMPLAINT -> new ComplaintTicket();
+            case COMPLAINT -> ComplaintTicket.builder().build();
 //                case INCIDENT -> new IncidentTicket();
 //                case REQUEST -> new RequestTicket();
             default -> throw new IllegalArgumentException("Unknown ticket type: " + type);

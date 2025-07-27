@@ -14,8 +14,8 @@ import java.time.LocalDateTime;
 @Setter
 @ToString
 @EqualsAndHashCode
-@SuperBuilder
 @NoArgsConstructor
+@SuperBuilder
 public abstract class Ticket implements Serializable {
 
     @Id
@@ -23,26 +23,24 @@ public abstract class Ticket implements Serializable {
     private Long ticketId;
 
 
-    @Enumerated
-    @NonNull
+    @Enumerated(EnumType.STRING)
     private TicketType ticketType;
 
     @ManyToOne
     private TicketElement ticketElement;
-    @NonNull
+
     private LocalDateTime createdWhen;
 
-    @NonNull
     @ManyToOne
     private TicketingUser createdBy;
 
     private String description;
 
-    @NonNull
+
     @Enumerated(EnumType.STRING)
     private TicketStatus ticketStatus;
 
-    @NonNull
+
     private Integer slaHours;
     @ManyToOne
     private TicketingUser assignedTo;
@@ -55,6 +53,7 @@ public abstract class Ticket implements Serializable {
     @ManyToOne
     private TicketingUser closedBy;
     private LocalDateTime closedWhen;
+
 
 
 }

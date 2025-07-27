@@ -4,10 +4,11 @@ package org.ubb.ticketing.controller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.domain.complaint.ComplaintTicket;
+import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.service.ComplaintTicketService;
 
 import java.util.Set;
@@ -22,12 +23,13 @@ public class ComplaintTicketController {
         this.complaintTicketService = complaintTicketService;
     }
 
+    @GetMapping()
     public ResponseEntity<ApiResponse<Set<ComplaintTicket>>> getAllTickets() {
         try {
             var complaintTickets = complaintTicketService.getAll();
             return ResponseEntity.ok(new ApiResponse<>("all tickets", complaintTickets));
         } catch (TicketingSystemException e) {
-            logger.error("getAllTickets intrnal", e);
+            logger.error("getAllTickets internal error", e);
             return ResponseEntity.internalServerError().build();
         }
     }
