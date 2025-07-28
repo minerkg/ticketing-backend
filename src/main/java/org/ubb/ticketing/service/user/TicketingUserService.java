@@ -2,6 +2,7 @@ package org.ubb.ticketing.service.user;
 
 
 import jakarta.transaction.Transactional;
+import jakarta.validation.ValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.Authentication;
@@ -9,6 +10,13 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.Errors;
+import org.ubb.ticketing.domain.user.TicketingUser;
+import org.ubb.ticketing.domain.user.UserRole;
+import org.ubb.ticketing.domain.validator.TicketingUserValidator;
+import org.ubb.ticketing.dto.UserRegistrationRequest;
+import org.ubb.ticketing.exception.UserAlreadyExistsException;
 import org.ubb.ticketing.repository.UserRepository;
 
 import java.nio.file.AccessDeniedException;
@@ -19,55 +27,50 @@ public class TicketingUserService {
 
 
     private final UserRepository userRepository;
-    private final  PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
+    private final TicketingUserValidator ticketingUserValidator;
+    //private final UserDtoConverter userDtoConverter;
 
-
-    public TicketingUserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public TicketingUserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.ticketingUserValidator = ticketingUserValidator;
     }
-
-    //private UserDtoConverter userDtoConverter;
 
 
     @Transactional
-    public User registerUser(UserRegistrationRequest userRequest) {
+    public TicketingUser registerUser(UserRegistrationRequest userRequest) {
+
+        Errors errors = new BeanPropertyBindingResult(userRequest, "userRequest");
+        ticketingUserValidator.validate(userRequest, errors);
+
+        if (errors.hasErrors()) {
+            throw new ValidationException("User registration validation failed: " + errors.getAllErrors());
+        }
 
         try {
-            verifyDuplicateUser(userRequest);
-
-            User newUser = User.builder()
-                    .username(userRequest.username())
-                    .password(passwordEncoder.encode(userRequest.password()))
-                    .first_name(userRequest.first_name())
-                    .last_name(userRequest.last_name())
-                    .email(userRequest.email())
-                    .phone(userRequest.phone_nr())
-                    .role(Role.USER)
-                    .nr_matricol("")
+            TicketingUser newUser = TicketingUser.builder()
+                    .username(userRequest.getUsername())
+                    .password(passwordEncoder.encode(userRequest.getPassword()))
+                    .firstName(userRequest.getFirstName())
+                    .lastName(userRequest.getLastName())
+                    .email(userRequest.getEmail())
+                    .userRole(UserRole.USER)
                     .build();
 
+            // TODO: Validate that the email exists and is confirmed
+
             return userRepository.save(newUser);
-        }catch (DataIntegrityViolationException dive){
-            throw new UserAlreadyExistsException("A user with the provided email,username,phone number already exists");
+
+        } catch (DataIntegrityViolationException e) {
+            throw new UserAlreadyExistsException("A user with the provided email or username already exists", e);
         }
     }
 
 
-    public void verifyDuplicateUser(UserRegistrationRequest userRequest) {
-        if ( userRepository.findByEmail(userRequest.email()).isPresent() ) {
-            throw new UserAlreadyExistsException("User with email: "+userRequest.email() +" already exists");
-        }
-        if (userRepository.findByUsername(userRequest.username()).isPresent() ) {
-            throw new UserAlreadyExistsException("User with username: "+userRequest.username() +" already exists");
-        }
-        if (userRepository.findByPhone(userRequest.phone_nr()).isPresent() ) {
-            throw new UserAlreadyExistsException("User with phone: "+userRequest.phone_nr() +" already exists");
-        }
-    }
 
     @Transactional
-    public void updateUserRole(String username, Role newRole) throws AccessDeniedException {
+    public void updateUserRole(String username, UserRole newRole) throws AccessDeniedException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         authentication.getAuthorities().forEach(a -> System.out.println("Authority: " + a.getAuthority()));
         if (authentication == null || !authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
@@ -92,7 +95,7 @@ public class TicketingUserService {
 
     @Transactional
     public User updateUser(UpdateUserDto updateData) {
-        User user = userRepository.findByUsername(updateData.getUsername()).orElseThrow(()-> new UserNotFoundException("User not found with username: " + updateData.getUsername()));
+        User user = userRepository.findByUsername(updateData.getUsername()).orElseThrow(() -> new UserNotFoundException("User not found with username: " + updateData.getUsername()));
         user.setFirst_name(updateData.getFirst_name());
         user.setLast_name(updateData.getLast_name());
         user.setEmail(updateData.getEmail());
@@ -102,7 +105,7 @@ public class TicketingUserService {
     }
 
 
-    public List<User> getAllUsers(){
+    public List<User> getAllUsers() {
         return this.userRepository.findAll();
     }
 

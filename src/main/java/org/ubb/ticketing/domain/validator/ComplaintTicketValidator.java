@@ -1,19 +1,28 @@
 package org.ubb.ticketing.domain.validator;
 
 import org.springframework.stereotype.Component;
+import org.springframework.validation.Errors;
+import org.springframework.validation.Validator;
 import org.ubb.ticketing.domain.TicketType;
 import org.ubb.ticketing.domain.complaint.ComplaintTicket;
-import org.ubb.ticketing.exception.TicketingSystemException;
 
 @Component
-public class ComplaintTicketValidator {
+public class ComplaintTicketValidator implements Validator {
 
-    public boolean validate(ComplaintTicket complaintTicket){
-        if (complaintTicket.getTicketType().equals(TicketType.COMPLAINT)) {
-            return true;
-        }
-        throw new TicketingSystemException("Invalid ticket type");
+
+    @Override
+    public boolean supports(Class<?> clazz) {
+        return ComplaintTicket.class.isAssignableFrom(clazz);
     }
 
+    @Override
+    public void validate(Object target, Errors errors) {
+        ComplaintTicket complaintTicket = (ComplaintTicket) target;
 
+        if (!complaintTicket.getTicketType().equals(TicketType.COMPLAINT)) {
+            errors.rejectValue("ticketType", "mismatch",
+                    "The complaint ticket must have ticket type COMPLAINT");
+        }
+
+    }
 }
