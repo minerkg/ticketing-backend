@@ -2,9 +2,12 @@ package org.ubb.ticketing.service;
 
 
 import jakarta.transaction.Transactional;
+import jakarta.validation.ValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.Errors;
 import org.ubb.ticketing.domain.SolutionType;
 import org.ubb.ticketing.domain.TicketStatus;
 import org.ubb.ticketing.domain.complaint.ComplaintTicket;
@@ -47,8 +50,12 @@ public class ComplaintTicketService {
     }
 
     public ComplaintTicket save(ComplaintTicket complaintTicket) {
+        Errors errors = new BeanPropertyBindingResult(complaintTicket, "complaintTicket");
         logger.debug("save complaint ticket accessed in service");
-        complaintTicketValidator.validate(complaintTicket);
+        complaintTicketValidator.validate(complaintTicket, errors);
+        if (errors.hasErrors()) {
+            throw new ValidationException("Complaint Ticket validation failed: " + errors.getAllErrors());
+        }
         return complaintTicketRepository.save(complaintTicket);
     }
 
