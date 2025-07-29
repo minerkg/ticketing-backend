@@ -41,6 +41,8 @@ public class AddInitialData implements CommandLineRunner {
                 .build();
 
         ticketingUserService.registerUser(adminUser);
+
+
         //ticketingUserService.updateUserRole("admin", UserRole.ADMIN);
     }
 }

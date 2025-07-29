@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
+import org.ubb.ticketing.converter.UserDtoConverter;
 import org.ubb.ticketing.domain.user.TicketingUser;
 import org.ubb.ticketing.domain.user.UserRole;
 import org.ubb.ticketing.domain.validator.PasswordValidator;
@@ -37,18 +38,19 @@ public class TicketingUserService {
     private final TicketingUserValidator ticketingUserValidator;
     private final PasswordValidator passwordValidator;
     private final Logger logger = LoggerFactory.getLogger(TicketingUserService.class);
-    //private final UserDtoConverter userDtoConverter;
+    private final UserDtoConverter userDtoConverter;
 
-    public TicketingUserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator, PasswordValidator passwordValidator) {
+    public TicketingUserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator, PasswordValidator passwordValidator, UserDtoConverter userDtoConverter) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.ticketingUserValidator = ticketingUserValidator;
         this.passwordValidator = passwordValidator;
+        this.userDtoConverter = userDtoConverter;
     }
 
 
     @Transactional
-    public TicketingUser registerUser(UserRegistrationRequest userRequest) {
+    public TicketingUserDto registerUser(UserRegistrationRequest userRequest) {
 
         Errors userErrors = new BeanPropertyBindingResult(userRequest, "userRequest");
         ticketingUserValidator.validate(userRequest, userErrors);
@@ -75,7 +77,7 @@ public class TicketingUserService {
 
             // TODO: Validate that the email exists and is confirmed
 
-            return userRepository.save(newUser);
+            return userDtoConverter.convertModelToDto(userRepository.save(newUser));
 
         } catch (DataIntegrityViolationException e) {
             throw new UserAlreadyExistsException("A user with the provided email or username already exists", e);
