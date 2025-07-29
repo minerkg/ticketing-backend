@@ -3,10 +3,11 @@ package org.ubb.ticketing.service.user;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.ValidationException;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -14,12 +15,15 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
 import org.ubb.ticketing.domain.user.TicketingUser;
 import org.ubb.ticketing.domain.user.UserRole;
+import org.ubb.ticketing.domain.validator.PasswordValidator;
 import org.ubb.ticketing.domain.validator.TicketingUserValidator;
+import org.ubb.ticketing.dto.TicketingUserDto;
 import org.ubb.ticketing.dto.UserRegistrationRequest;
+import org.ubb.ticketing.exception.PasswordException;
 import org.ubb.ticketing.exception.UserAlreadyExistsException;
+import org.ubb.ticketing.exception.UserNotFoundException;
 import org.ubb.ticketing.repository.UserRepository;
 
-import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 @Service
@@ -29,23 +33,32 @@ public class TicketingUserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TicketingUserValidator ticketingUserValidator;
+    private final PasswordValidator passwordValidator;
+    private final Logger logger = LoggerFactory.getLogger(TicketingUserService.class);
     //private final UserDtoConverter userDtoConverter;
 
-    public TicketingUserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator) {
+    public TicketingUserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator, PasswordValidator passwordValidator) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.ticketingUserValidator = ticketingUserValidator;
+        this.passwordValidator = passwordValidator;
     }
 
 
     @Transactional
     public TicketingUser registerUser(UserRegistrationRequest userRequest) {
 
-        Errors errors = new BeanPropertyBindingResult(userRequest, "userRequest");
-        ticketingUserValidator.validate(userRequest, errors);
+        Errors userErrors = new BeanPropertyBindingResult(userRequest, "userRequest");
+        ticketingUserValidator.validate(userRequest, userErrors);
 
-        if (errors.hasErrors()) {
-            throw new ValidationException("User registration validation failed: " + errors.getAllErrors());
+        if (userErrors.hasErrors()) {
+            throw new ValidationException("User registration validation failed: " + userErrors.getAllErrors());
+        }
+
+        Errors passwordErrors = new BeanPropertyBindingResult(userRequest.getPassword(), "newPassword");
+        passwordValidator.validate(userRequest.getPassword(), passwordErrors);
+        if (passwordErrors.hasErrors()) {
+            throw new PasswordException("Password does not meet security requirements.");
         }
 
         try {
@@ -68,45 +81,56 @@ public class TicketingUserService {
     }
 
 
+//    @Transactional
+//    public void updateUserRole(String username, UserRole newRole) throws AccessDeniedException {
+//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//        authentication.getAuthorities().forEach(a -> System.out.println("Authority: " + a.getAuthority()));
+//        if (authentication == null || !authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
+//            throw new AccessDeniedException("Only admins can update user roles.");
+//        }
+//        User user = userRepository.findByUsername(username)
+//                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
+//
+//        user.setRole(newRole);
+//    }
 
-    @Transactional
-    public void updateUserRole(String username, UserRole newRole) throws AccessDeniedException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        authentication.getAuthorities().forEach(a -> System.out.println("Authority: " + a.getAuthority()));
-        if (authentication == null || !authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-            throw new AccessDeniedException("Only admins can update user roles.");
+    @PreAuthorize("isAuthenticated()")
+    public void changePassword(String currentPassword, String newPassword) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+
+        TicketingUser user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
+
+        Errors errors = new BeanPropertyBindingResult(newPassword, "newPassword");
+        passwordValidator.validate(newPassword, errors);
+        if (errors.hasErrors()) {
+            throw new PasswordException("Password does not meet security requirements.");
         }
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
-
-        user.setRole(newRole);
-    }
-
-    public void changePassword(String username, String currentPassword, String newPassword) {
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new RuntimeException("Current password is incorrect");
+            throw new PasswordException("Current password is incorrect");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+        logger.info("Password for user {} changed successfully", username);
     }
 
-    @Transactional
-    public User updateUser(UpdateUserDto updateData) {
-        User user = userRepository.findByUsername(updateData.getUsername()).orElseThrow(() -> new UserNotFoundException("User not found with username: " + updateData.getUsername()));
-        user.setFirst_name(updateData.getFirst_name());
-        user.setLast_name(updateData.getLast_name());
-        user.setEmail(updateData.getEmail());
-        user.setPhone(updateData.getPhone());
+//    @Transactional
+//    public User updateUser(UpdateUserDto updateData) {
+//        User user = userRepository.findByUsername(updateData.getUsername()).orElseThrow(() -> new UserNotFoundException("User not found with username: " + updateData.getUsername()));
+//        user.setFirst_name(updateData.getFirst_name());
+//        user.setLast_name(updateData.getLast_name());
+//        user.setEmail(updateData.getEmail());
+//        user.setPhone(updateData.getPhone());
+//
+//        return user;
+//    }
 
-        return user;
-    }
 
-
-    public List<User> getAllUsers() {
-        return this.userRepository.findAll();
+    public List<TicketingUserDto> getAllUsers() {
+        return userRepository.findAllUsersWithoutPassword();
     }
 
 }
