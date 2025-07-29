@@ -41,7 +41,7 @@ public class TicketingUserController {
             logger.error("registerUser validation failed", e);
             return ResponseEntity
                     .status(HttpStatus.CONFLICT)
-                    .body(new ApiResponse<>("user already exists", null ));
+                    .body(new ApiResponse<>("user already exists", null));
         } catch (PasswordException e) {
             logger.error("registerUser password validation failed", e);
             return ResponseEntity
@@ -67,14 +67,5 @@ public class TicketingUserController {
 
     }
 
-    @PutMapping("/update-user")
-    public ResponseEntity<?> updateUserInfo(@RequestBody UpdateUserDto updateData) {
-        try {
-            User updatedUser = userService.updateUser(updateData);
-            return ResponseEntity.ok().body(new ApiResponse<>("updated user", updatedUser));
-        } catch (RuntimeException e) {
-            return ResponseEntity.ok().body(new ApiResponse<>("user update failed", e.getMessage()));
-        }
-    }
 
 }
