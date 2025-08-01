@@ -1,8 +1,10 @@
 package org.ubb.ticketing.converter;
 
+import org.springframework.stereotype.Component;
 import org.ubb.ticketing.domain.user.TicketingUser;
 import org.ubb.ticketing.dto.TicketingUserDto;
 
+@Component
 public class UserDtoConverter extends BaseConverter<TicketingUser, TicketingUserDto> {
     @Override
     TicketingUser convertDtoToModel(TicketingUserDto dto) {
