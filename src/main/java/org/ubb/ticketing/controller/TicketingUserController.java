@@ -24,6 +24,7 @@ public class TicketingUserController {
     private final TicketingUserService ticketingUserService;
     private final Logger logger = LoggerFactory.getLogger(TicketingUserController.class);
 
+
     public TicketingUserController(TicketingUserService ticketingUserService) {
         this.ticketingUserService = ticketingUserService;
     }
@@ -112,6 +113,24 @@ public class TicketingUserController {
                     .body(new ApiResponse<>("internal server error", null));
         }
 
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<TicketingUserDto>> getCurrentUser() {
+        try {
+            logger.info("getCurrentUser accessed in controller");
+            return ResponseEntity
+                    .ok(new ApiResponse<>("current user",
+                            ticketingUserService.getCurrentUser()));
+        } catch (UserNotFoundException e) {
+            logger.error("getAllTickets user not found", e);
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>("user not found", null));
+        } catch (Exception e) {
+            logger.error("getCurrentUser internal error", e);
+            return ResponseEntity.internalServerError()
+                    .body(new ApiResponse<>("internal server error", null));
+        }
     }
 
 }

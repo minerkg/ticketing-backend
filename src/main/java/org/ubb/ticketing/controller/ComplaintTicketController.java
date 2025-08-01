@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.ubb.ticketing.domain.complaint.ComplaintTicket;
-import org.ubb.ticketing.exception.TicketingSystemException;
+import org.ubb.ticketing.exception.UserNotFoundException;
 import org.ubb.ticketing.service.ComplaintTicketService;
 
 import java.util.Set;
@@ -28,7 +28,7 @@ public class ComplaintTicketController {
         try {
             var complaintTickets = complaintTicketService.getAll();
             return ResponseEntity.ok(new ApiResponse<>("all tickets", complaintTickets));
-        } catch (TicketingSystemException e) {
+        } catch (Exception e) {
             logger.error("getAllTickets internal error", e);
             return ResponseEntity.internalServerError().build();
         }

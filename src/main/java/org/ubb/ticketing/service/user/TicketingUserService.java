@@ -9,7 +9,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -96,7 +95,7 @@ public class TicketingUserService {
 
 
     @PreAuthorize("isAuthenticated()")
-    public void changePassword(String username , String currentPassword, String newPassword) {
+    public void changePassword(String username, String currentPassword, String newPassword) {
         TicketingUser user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
 
@@ -121,4 +120,11 @@ public class TicketingUserService {
         return userRepository.findAllUsersWithoutPassword();
     }
 
+    public TicketingUserDto getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        TicketingUser currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("User not found with username: " + userDetails.getUsername()));
+        return userDtoConverter.convertModelToDto(currentUser);
+    }
 }
