@@ -6,8 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.ubb.ticketing.dto.PasswordChangeRequest;
 import org.ubb.ticketing.dto.TicketingUserDto;
 import org.ubb.ticketing.dto.UserRegistrationRequest;
 import org.ubb.ticketing.exception.PasswordException;
@@ -24,11 +26,6 @@ public class TicketingUserController {
         this.ticketingUserService = ticketingUserService;
     }
 
-
-//    @GetMapping("/public/auth")
-//    public ResponseEntity<ApiResponse<String>> auth(@RequestBody String username, @RequestBody String password) {
-//
-//    }
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<TicketingUserDto>> registerUser(@RequestBody UserRegistrationRequest registerRequest) {
@@ -56,16 +53,41 @@ public class TicketingUserController {
     }
 
     @PutMapping("/change-password")
-    public ResponseEntity<?> changePassword(@RequestBody PasswordChangeRequest request, Authentication authentication) {
+    public ResponseEntity<ApiResponse<String>> changePassword(@RequestBody PasswordChangeRequest request, Authentication authentication) {
         try {
-            System.out.println(request);
-            userService.changePassword(authentication.getName(), request.getCurrentPassword(), request.getNewPassword());
-            return ResponseEntity.ok().body(new ApiResponse<>("password changed", null));
+            ticketingUserService.changePassword(
+                    authentication.getName(),
+                    request.getOldPassword(),
+                    request.getNewPassword());
+            logger.info("Password for user {} changed successfully", authentication.getName());
+            return ResponseEntity.ok()
+                    .body(new ApiResponse<>("password changed", null));
+        } catch (PasswordException e) {
+            logger.error("changePassword internal error", e);
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>("password change failed", e.getMessage()));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>("password change failed", e.getMessage()));
+            logger.error("changePassword internal error", e);
+            return ResponseEntity.internalServerError()
+                    .body(new ApiResponse<>("internal server error", null));
         }
 
     }
 
+    @GetMapping("/all-users")
+    public ResponseEntity<ApiResponse<Iterable<TicketingUserDto>>> getAllUsers() {
+        try {
+            var users = ticketingUserService.getAllUsers();
+            return ResponseEntity.ok(new ApiResponse<>("all users", users));
+        } catch (AccessDeniedException e) {
+            logger.error("getAllUsers no admin role", e);
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>("admin role needed", null));
+        } catch (RuntimeException e) {
+            logger.error("getAllUsers internal error", e);
+            return ResponseEntity.internalServerError()
+                    .body(new ApiResponse<>("internal server error", null));
+        }
+    }
 
 }

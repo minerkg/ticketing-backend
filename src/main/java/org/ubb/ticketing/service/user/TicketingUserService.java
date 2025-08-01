@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
@@ -87,9 +88,6 @@ public class TicketingUserService {
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public void updateUserRole(String username, UserRole newRole) throws AccessDeniedException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-
         TicketingUser user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
 
@@ -98,10 +96,7 @@ public class TicketingUserService {
 
 
     @PreAuthorize("isAuthenticated()")
-    public void changePassword(String currentPassword, String newPassword) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth.getName();
-
+    public void changePassword(String username , String currentPassword, String newPassword) {
         TicketingUser user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
 
@@ -121,6 +116,7 @@ public class TicketingUserService {
     }
 
 
+    @PreAuthorize("hasRole('ADMIN')")
     public List<TicketingUserDto> getAllUsers() {
         return userRepository.findAllUsersWithoutPassword();
     }
