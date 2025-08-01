@@ -9,7 +9,6 @@ import org.ubb.ticketing.domain.TicketType;
 import org.ubb.ticketing.domain.complaint.ComplaintTicket;
 import org.ubb.ticketing.domain.user.UserRole;
 import org.ubb.ticketing.dto.UserRegistrationRequest;
-import org.ubb.ticketing.repository.TicketingUserRepository;
 import org.ubb.ticketing.service.ComplaintTicketService;
 import org.ubb.ticketing.service.user.TicketingUserService;
 
@@ -18,13 +17,12 @@ public class AddInitialData implements CommandLineRunner {
 
     private final ComplaintTicketService complaintTicketService;
     private final TicketingUserService ticketingUserService;
-    private final TicketingUserRepository ticketingUserRepository;
+
     private final Dotenv dotenv;
 
-    public AddInitialData(ComplaintTicketService complaintTicketService, TicketingUserService ticketingUserService, TicketingUserRepository ticketingUserRepository) {
+    public AddInitialData(ComplaintTicketService complaintTicketService, TicketingUserService ticketingUserService) {
         this.complaintTicketService = complaintTicketService;
         this.ticketingUserService = ticketingUserService;
-        this.ticketingUserRepository = ticketingUserRepository;
         this.dotenv = Dotenv.load();
 
     }
@@ -44,11 +42,9 @@ public class AddInitialData implements CommandLineRunner {
                 .email("ors@ticketing.com")
                 .build();
 
-        ticketingUserService.registerUser(adminUser);
+        var tudto = ticketingUserService.registerUser(adminUser);
 
-        ticketingUserRepository.findByUsername(usernameAdmin)
-                .ifPresent(user -> user.setUserRole(UserRole.ADMIN));
-
-        //ticketingUserService.updateUserRole("admin", UserRole.ADMIN);
+        ticketingUserService.updateUserRole(tudto.getUsername(), UserRole.ADMIN);
     }
+
 }
