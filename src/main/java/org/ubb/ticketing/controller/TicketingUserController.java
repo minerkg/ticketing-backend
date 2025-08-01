@@ -10,9 +10,11 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.ubb.ticketing.dto.PasswordChangeRequest;
+import org.ubb.ticketing.dto.RoleUpdateRequest;
 import org.ubb.ticketing.dto.TicketingUserDto;
 import org.ubb.ticketing.dto.UserRegistrationRequest;
 import org.ubb.ticketing.exception.PasswordException;
+import org.ubb.ticketing.exception.UserNotFoundException;
 import org.ubb.ticketing.service.user.TicketingUserService;
 
 @RestController
@@ -66,7 +68,7 @@ public class TicketingUserController {
             logger.error("changePassword internal error", e);
             return ResponseEntity.badRequest()
                     .body(new ApiResponse<>("password change failed", e.getMessage()));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             logger.error("changePassword internal error", e);
             return ResponseEntity.internalServerError()
                     .body(new ApiResponse<>("internal server error", null));
@@ -83,11 +85,33 @@ public class TicketingUserController {
             logger.error("getAllUsers no admin role", e);
             return ResponseEntity.badRequest()
                     .body(new ApiResponse<>("admin role needed", null));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             logger.error("getAllUsers internal error", e);
             return ResponseEntity.internalServerError()
                     .body(new ApiResponse<>("internal server error", null));
         }
+    }
+
+    public ResponseEntity<ApiResponse<TicketingUserDto>> updateUserRole(
+            @RequestBody RoleUpdateRequest roleUpdateRequest,
+            Authentication authentication) {
+        try {
+            ticketingUserService.updateUserRole(authentication.getName(), roleUpdateRequest.getNewRole());
+            return ResponseEntity.ok(new ApiResponse<>("user role updated", null));
+        } catch (AccessDeniedException e) {
+            logger.error("user role cant be updated, no admin role", e);
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>("admin role needed", null));
+        } catch (UserNotFoundException e) {
+            logger.error("user not found, role cant be updated", e);
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>("user not found, role cant be updated", null));
+        } catch (Exception e) {
+            logger.error("updateUserRole internal error", e);
+            return ResponseEntity.internalServerError()
+                    .body(new ApiResponse<>("internal server error", null));
+        }
+
     }
 
 }
