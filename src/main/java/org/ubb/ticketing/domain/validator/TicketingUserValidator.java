@@ -5,16 +5,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 import org.ubb.ticketing.dto.UserRegistrationRequest;
-import org.ubb.ticketing.repository.UserRepository;
+import org.ubb.ticketing.repository.TicketingUserRepository;
 
 @Component
 public class TicketingUserValidator implements Validator {
 
-    private final UserRepository userRepository;
+    private final TicketingUserRepository ticketingUserRepository;
 
 
-    public TicketingUserValidator(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public TicketingUserValidator(TicketingUserRepository ticketingUserRepository) {
+        this.ticketingUserRepository = ticketingUserRepository;
     }
 
     @Override
@@ -26,11 +26,11 @@ public class TicketingUserValidator implements Validator {
     public void validate(Object target, Errors errors) {
         UserRegistrationRequest request = (UserRegistrationRequest) target;
 
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        if (ticketingUserRepository.findByEmail(request.getEmail()).isPresent()) {
             errors.rejectValue("email", "duplicate", "Email is already in use");
         }
 
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+        if (ticketingUserRepository.findByUsername(request.getUsername()).isPresent()) {
             errors.rejectValue("username", "duplicate", "Username is already taken");
         }
     }

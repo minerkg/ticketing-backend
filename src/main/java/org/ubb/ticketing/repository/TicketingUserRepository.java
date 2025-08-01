@@ -8,7 +8,7 @@ import org.ubb.ticketing.dto.TicketingUserDto;
 import java.util.List;
 import java.util.Optional;
 
-public interface UserRepository extends JpaRepository<TicketingUser, Long> {
+public interface TicketingUserRepository extends JpaRepository<TicketingUser, Long> {
 
     Optional<TicketingUser> findByUsername(String username);
 

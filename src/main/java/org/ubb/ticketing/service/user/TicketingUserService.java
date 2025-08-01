@@ -25,7 +25,7 @@ import org.ubb.ticketing.dto.UserRegistrationRequest;
 import org.ubb.ticketing.exception.PasswordException;
 import org.ubb.ticketing.exception.UserAlreadyExistsException;
 import org.ubb.ticketing.exception.UserNotFoundException;
-import org.ubb.ticketing.repository.UserRepository;
+import org.ubb.ticketing.repository.TicketingUserRepository;
 
 import java.util.List;
 
@@ -33,15 +33,15 @@ import java.util.List;
 public class TicketingUserService {
 
 
-    private final UserRepository userRepository;
+    private final TicketingUserRepository ticketingUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final TicketingUserValidator ticketingUserValidator;
     private final PasswordValidator passwordValidator;
     private final Logger logger = LoggerFactory.getLogger(TicketingUserService.class);
     private final UserDtoConverter userDtoConverter;
 
-    public TicketingUserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator, PasswordValidator passwordValidator, UserDtoConverter userDtoConverter) {
-        this.userRepository = userRepository;
+    public TicketingUserService(TicketingUserRepository ticketingUserRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator, PasswordValidator passwordValidator, UserDtoConverter userDtoConverter) {
+        this.ticketingUserRepository = ticketingUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.ticketingUserValidator = ticketingUserValidator;
         this.passwordValidator = passwordValidator;
@@ -77,7 +77,7 @@ public class TicketingUserService {
 
             // TODO: Validate that the email exists and is confirmed
 
-            return userDtoConverter.convertModelToDto(userRepository.save(newUser));
+            return userDtoConverter.convertModelToDto(ticketingUserRepository.save(newUser));
 
         } catch (DataIntegrityViolationException e) {
             throw new UserAlreadyExistsException("A user with the provided email or username already exists", e);
@@ -87,7 +87,7 @@ public class TicketingUserService {
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public void updateUserRole(String username, UserRole newRole) throws AccessDeniedException {
-        TicketingUser user = userRepository.findByUsername(username)
+        TicketingUser user = ticketingUserRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
 
         user.setUserRole(newRole);
@@ -96,7 +96,7 @@ public class TicketingUserService {
 
     @PreAuthorize("isAuthenticated()")
     public void changePassword(String username, String currentPassword, String newPassword) {
-        TicketingUser user = userRepository.findByUsername(username)
+        TicketingUser user = ticketingUserRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
 
         Errors errors = new BeanPropertyBindingResult(newPassword, "newPassword");
@@ -110,20 +110,20 @@ public class TicketingUserService {
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
+        ticketingUserRepository.save(user);
         logger.info("Password for user {} changed successfully", username);
     }
 
 
     @PreAuthorize("hasRole('ADMIN')")
     public List<TicketingUserDto> getAllUsers() {
-        return userRepository.findAllUsersWithoutPassword();
+        return ticketingUserRepository.findAllUsersWithoutPassword();
     }
 
     public TicketingUserDto getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        TicketingUser currentUser = userRepository.findByUsername(userDetails.getUsername())
+        TicketingUser currentUser = ticketingUserRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("User not found with username: " + userDetails.getUsername()));
         return userDtoConverter.convertModelToDto(currentUser);
     }
