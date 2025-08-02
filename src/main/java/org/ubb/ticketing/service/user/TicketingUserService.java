@@ -9,12 +9,13 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
+import org.ubb.ticketing.converter.UserDtoConverter;
 import org.ubb.ticketing.domain.user.TicketingUser;
 import org.ubb.ticketing.domain.user.UserRole;
 import org.ubb.ticketing.domain.validator.PasswordValidator;
@@ -24,7 +25,7 @@ import org.ubb.ticketing.dto.UserRegistrationRequest;
 import org.ubb.ticketing.exception.PasswordException;
 import org.ubb.ticketing.exception.UserAlreadyExistsException;
 import org.ubb.ticketing.exception.UserNotFoundException;
-import org.ubb.ticketing.repository.UserRepository;
+import org.ubb.ticketing.repository.TicketingUserRepository;
 
 import java.util.List;
 
@@ -32,24 +33,25 @@ import java.util.List;
 public class TicketingUserService {
 
 
-    private final UserRepository userRepository;
+    private final TicketingUserRepository ticketingUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final TicketingUserValidator ticketingUserValidator;
     private final PasswordValidator passwordValidator;
     private final Logger logger = LoggerFactory.getLogger(TicketingUserService.class);
-    //private final UserDtoConverter userDtoConverter;
+    private final UserDtoConverter userDtoConverter;
 
-    public TicketingUserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator, PasswordValidator passwordValidator) {
-        this.userRepository = userRepository;
+    public TicketingUserService(TicketingUserRepository ticketingUserRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator, PasswordValidator passwordValidator, UserDtoConverter userDtoConverter) {
+        this.ticketingUserRepository = ticketingUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.ticketingUserValidator = ticketingUserValidator;
         this.passwordValidator = passwordValidator;
+        this.userDtoConverter = userDtoConverter;
     }
 
 
     @Transactional
-    public TicketingUser registerUser(UserRegistrationRequest userRequest) {
-
+    public TicketingUserDto registerUser(UserRegistrationRequest userRequest) {
+        logger.info("Registering user {}", userRequest.getUsername());
         Errors userErrors = new BeanPropertyBindingResult(userRequest, "userRequest");
         ticketingUserValidator.validate(userRequest, userErrors);
 
@@ -75,20 +77,17 @@ public class TicketingUserService {
 
             // TODO: Validate that the email exists and is confirmed
 
-            return userRepository.save(newUser);
+            return userDtoConverter.convertModelToDto(ticketingUserRepository.save(newUser));
 
         } catch (DataIntegrityViolationException e) {
             throw new UserAlreadyExistsException("A user with the provided email or username already exists", e);
         }
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    //@PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public void updateUserRole(String username, UserRole newRole) throws AccessDeniedException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-
-        TicketingUser user = userRepository.findByUsername(username)
+        TicketingUser user = ticketingUserRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
 
         user.setUserRole(newRole);
@@ -96,11 +95,8 @@ public class TicketingUserService {
 
 
     @PreAuthorize("isAuthenticated()")
-    public void changePassword(String currentPassword, String newPassword) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth.getName();
-
-        TicketingUser user = userRepository.findByUsername(username)
+    public void changePassword(String username, String currentPassword, String newPassword) {
+        TicketingUser user = ticketingUserRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
 
         Errors errors = new BeanPropertyBindingResult(newPassword, "newPassword");
@@ -114,13 +110,21 @@ public class TicketingUserService {
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
+        ticketingUserRepository.save(user);
         logger.info("Password for user {} changed successfully", username);
     }
 
 
+    @PreAuthorize("hasRole('ADMIN')")
     public List<TicketingUserDto> getAllUsers() {
-        return userRepository.findAllUsersWithoutPassword();
+        return ticketingUserRepository.findAllUsersWithoutPassword();
     }
 
+    public TicketingUserDto getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        TicketingUser currentUser = ticketingUserRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("User not found with username: " + userDetails.getUsername()));
+        return userDtoConverter.convertModelToDto(currentUser);
+    }
 }

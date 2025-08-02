@@ -11,14 +11,14 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
@@ -55,16 +55,18 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/v1/public/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/complaint-tickets").authenticated()
-                        .requestMatchers("/api/v1/user/me").authenticated()
-                        .requestMatchers("/api/v1/users").hasAnyRole("ADMIN")
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/supervisor/**").hasRole("SUPERVISOR")
+                        .requestMatchers(HttpMethod.POST, "/complaint-tickets").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/complaint-tickets").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/complaint-tickets").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/complaint-tickets").permitAll()
+                        .requestMatchers("/user/change-password").authenticated()
+                        .requestMatchers("/user/all-users").hasRole("ADMIN")
+                        .requestMatchers("/user/register").permitAll()
+                        .requestMatchers("/user/**").authenticated()
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/supervisor/**").hasRole("SUPERVISOR")
                         .anyRequest().authenticated()
                 )
-                .authenticationManager(authenticationManager)
                 .httpBasic(Customizer.withDefaults());
 
         return http.build();
