@@ -51,7 +51,7 @@ public class TicketingUserService {
 
     @Transactional
     public TicketingUserDto registerUser(UserRegistrationRequest userRequest) {
-
+        logger.info("Registering user {}", userRequest.getUsername());
         Errors userErrors = new BeanPropertyBindingResult(userRequest, "userRequest");
         ticketingUserValidator.validate(userRequest, userErrors);
 
