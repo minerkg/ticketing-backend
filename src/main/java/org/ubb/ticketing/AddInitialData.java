@@ -10,6 +10,7 @@ import org.ubb.ticketing.dto.TicketCreationRequest;
 import org.ubb.ticketing.dto.UserRegistrationRequest;
 import org.ubb.ticketing.repository.TicketingUserRepository;
 import org.ubb.ticketing.service.ComplaintTicketService;
+import org.ubb.ticketing.service.type.TicketElementService;
 import org.ubb.ticketing.service.user.TicketingUserService;
 
 @Component
@@ -20,10 +21,12 @@ public class AddInitialData implements CommandLineRunner {
 
     private final Dotenv dotenv;
     private final TicketingUserRepository ticketingUserRepository;
+    private final TicketElementService ticketElementService;
 
-    public AddInitialData(ComplaintTicketService complaintTicketService, TicketingUserService ticketingUserService, TicketingUserRepository ticketingUserRepository) {
+    public AddInitialData(ComplaintTicketService complaintTicketService, TicketingUserService ticketingUserService, TicketingUserRepository ticketingUserRepository, TicketElementService ticketElementService) {
         this.complaintTicketService = complaintTicketService;
         this.ticketingUserService = ticketingUserService;
+        this.ticketElementService = ticketElementService;
         this.dotenv = Dotenv.load();
         this.ticketingUserRepository = ticketingUserRepository;
     }
@@ -53,10 +56,14 @@ public class AddInitialData implements CommandLineRunner {
                 createdUser.getAuthorities()
         );
 
+        ticketElementService.createTicketElement("Billing complaint");
+        ticketElementService.createTicketElement("Service complaint");
+        ticketElementService.createTicketElement("Other complaint");
+
         complaintTicketService.createTicket(
                 TicketCreationRequest.builder()
-                        .ticketElement()
-                        .description()
+                        .ticketElement(ticketElementService.getAllTicketElements().stream().findFirst().get())
+                        .description("Test ticket")
                         .build(),
                 authentication);
 
