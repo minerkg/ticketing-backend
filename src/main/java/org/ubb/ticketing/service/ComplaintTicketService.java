@@ -5,6 +5,7 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.ValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
@@ -14,10 +15,14 @@ import org.ubb.ticketing.domain.complaint.ComplaintTicket;
 import org.ubb.ticketing.domain.user.TicketingUser;
 import org.ubb.ticketing.domain.validator.ComplaintTicketValidator;
 import org.ubb.ticketing.exception.TicketNotFoundException;
+import org.ubb.ticketing.exception.TicketingSystemException;
+import org.ubb.ticketing.exception.UserNotFoundException;
 import org.ubb.ticketing.repository.ComplaintTicketRepository;
+import org.ubb.ticketing.repository.TicketingUserRepository;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -27,11 +32,13 @@ public class ComplaintTicketService {
     private final ComplaintTicketRepository complaintTicketRepository;
     private final ComplaintTicketValidator complaintTicketValidator;
     private final Logger logger = LoggerFactory.getLogger(ComplaintTicketService.class);
+    private final TicketingUserRepository ticketingUserRepository;
 
     public ComplaintTicketService(ComplaintTicketRepository complaintTicketRepository,
-                                  ComplaintTicketValidator complaintTicketValidator) {
+                                  ComplaintTicketValidator complaintTicketValidator, TicketingUserRepository ticketingUserRepository) {
         this.complaintTicketRepository = complaintTicketRepository;
         this.complaintTicketValidator = complaintTicketValidator;
+        this.ticketingUserRepository = ticketingUserRepository;
     }
 
 
@@ -49,7 +56,7 @@ public class ComplaintTicketService {
                 );
     }
 
-    public ComplaintTicket save(ComplaintTicket complaintTicket) {
+    public ComplaintTicket createTicket(ComplaintTicket complaintTicket) {
         Errors errors = new BeanPropertyBindingResult(complaintTicket, "complaintTicket");
         logger.debug("save complaint ticket accessed in service");
         complaintTicketValidator.validate(complaintTicket, errors);
@@ -59,29 +66,36 @@ public class ComplaintTicketService {
         return complaintTicketRepository.save(complaintTicket);
     }
 
-    public void deleteById(Long id) {
-        logger.debug("delete complaint ticket by id accessed in service");
-        complaintTicketRepository
-                .findById(id).orElseThrow(
-                        () -> new TicketNotFoundException("No complaint ticket with id " + id)
-                );
-        complaintTicketRepository.deleteById(id);
-    }
+
+//    public void cancelById(Long id) {
+//        logger.debug("delete complaint ticket by id accessed in service");
+//        complaintTicketRepository
+//                .findById(id).orElseThrow(
+//                        () -> new TicketNotFoundException("No complaint ticket with id " + id)
+//                );
+//        complaintTicketRepository.deleteById(id);
+//    }
 
     @Transactional
-    public ComplaintTicket assignTicket(Long id, TicketingUser assignedTo, TicketingUser currentUser) {
+    public ComplaintTicket assignTicket(Long ticketId, TicketingUser assignedTo, Authentication authentication) {
         logger.debug("assignTicket complaint ticket accessed in service");
+        var currentUser = (TicketingUser) authentication.getPrincipal();
         var ticket = complaintTicketRepository
-                .findById(id).orElseThrow(
-                        () -> new TicketNotFoundException("No complaint ticket with id " + id)
+                .findById(ticketId).orElseThrow(
+                        () -> new TicketNotFoundException("No complaint ticket with id " + ticketId)
                 );
 
-        //TODO: check if the user exists and cross save the modifications
-//        var assignedToUser = userRepository
-//                .findByName(assignedTo).orElseThrow(
-//                        () -> new UserNotFoundException("No user with name " + assignedTo)
-//                );
-        //TODO: check if the current user is the user who wants to assign to himself the ticket wit any role or has supervisor role
+        //check if the user exists and cross save the modifications
+        var assignedToUser = ticketingUserRepository.findByUsername(assignedTo.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("No user with name " + assignedTo));
+
+        //check if the current user is the user who wants to assign to himself the ticket with any role or has supervisor role
+        if (!currentUser.equals(assignedToUser) &&
+                currentUser.getAuthorities().stream()
+                        .noneMatch(a -> a.getAuthority().equals("ROLE_SUPERVISOR"))) {
+            throw new TicketingSystemException("You are not allowed to assign this ticket to " + assignedTo.getUsername() +
+                    " because you are not the assigned user or you are not an admin.");
+        }
 
         ticket.setAssignedTo(assignedTo);
         ticket.setTicketStatus(TicketStatus.ASSIGNED);
@@ -90,7 +104,7 @@ public class ComplaintTicketService {
 
 
     @Transactional
-    public ComplaintTicket workingOnTicket(Long id, TicketingUser currentUser) {
+    public ComplaintTicket workingOnTicket(Long id, TicketingUser currentUser, Authentication authentication) {
         logger.debug("assignTicket complaint ticket accessed in service");
         var ticket = complaintTicketRepository
                 .findById(id).orElseThrow(
@@ -113,17 +127,19 @@ public class ComplaintTicketService {
 
 
     @Transactional
-    public ComplaintTicket closeTicket(Long id, TicketingUser currentUser,
+    public ComplaintTicket closeTicket(Long id, Authentication authentication,
                                        String solutionDescription,
                                        SolutionType solutionType) {
         logger.debug("closeTicket complaint ticket accessed in service");
+        var currentUser = (TicketingUser) authentication.getPrincipal();
+
         var ticket = complaintTicketRepository
                 .findById(id).orElseThrow(
                         () -> new TicketNotFoundException("No complaint ticket with id " + id)
                 );
 
-
-        //TODO: check if the user is granted to close tickets and the ticket is assignet to teh current user
+        if (!ticket.getAssignedTo().equals(currentUser))
+            throw new TicketingSystemException("You are not allowed to close this ticket because you are not assigned to it. ");
 
         ticket.setSolutionDescription(solutionDescription);
         ticket.setSolutionType(solutionType);
@@ -140,4 +156,13 @@ public class ComplaintTicketService {
     }
 
 
+    public List<ComplaintTicket> getCurrentUserAssignedTickets(Authentication authentication) {
+        logger.debug("getCurrentUserTickets complaint ticket accessed in service");
+        var currentUser = (TicketingUser) authentication.getPrincipal();
+        return complaintTicketRepository.findAll()
+                .stream()
+                .filter(ct -> ct.getAssignedTo().equals(currentUser))
+                .toList();
+
+    }
 }

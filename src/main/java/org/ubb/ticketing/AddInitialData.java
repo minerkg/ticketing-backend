@@ -30,7 +30,7 @@ public class AddInitialData implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         Ticket complaintTicket = TicketFactory.createNewTicket(TicketType.COMPLAINT);
-        complaintTicketService.save((ComplaintTicket) complaintTicket);
+        complaintTicketService.createTicket((ComplaintTicket) complaintTicket);
 
         String usernameAdmin = dotenv.get("USERNAME_ADMIN");
         String passwordAdmin = dotenv.get("PASSWORD_ADMIN");

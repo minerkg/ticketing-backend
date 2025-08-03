@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.UUID;
 
 import jakarta.validation.constraints.*;
+import org.ubb.ticketing.domain.Ticket;
+import org.ubb.ticketing.domain.complaint.ComplaintTicket;
 
 @Entity
 @Getter
@@ -67,6 +69,15 @@ public class TicketingUser implements UserDetails, Serializable {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
+
+//    @OneToMany(mappedBy = "createdBy")
+//    private List<Ticket> createdTickets;
+//    @OneToMany(mappedBy = "assignedTo")
+//    private List<Ticket> assignedTickets;
+//    @OneToMany(mappedBy = "closedBy")
+//    private List<Ticket> closedTickets;
+//    @OneToMany(mappedBy = "assignedTo")
+//    private List<Ticket> resolvedTickets;
 
 
     @Override
