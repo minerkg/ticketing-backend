@@ -9,11 +9,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
-import org.ubb.ticketing.domain.SolutionType;
+import org.ubb.ticketing.domain.TicketElement;
+import org.ubb.ticketing.domain.TicketFactory;
 import org.ubb.ticketing.domain.TicketStatus;
+import org.ubb.ticketing.domain.TicketType;
 import org.ubb.ticketing.domain.complaint.ComplaintTicket;
 import org.ubb.ticketing.domain.user.TicketingUser;
 import org.ubb.ticketing.domain.validator.ComplaintTicketValidator;
+import org.ubb.ticketing.dto.ComplaintTicketRequest;
+import org.ubb.ticketing.dto.TicketCreationRequest;
+import org.ubb.ticketing.dto.TicketCloseRequest;
 import org.ubb.ticketing.exception.TicketNotFoundException;
 import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.exception.UserNotFoundException;
@@ -56,14 +61,20 @@ public class ComplaintTicketService {
                 );
     }
 
-    public ComplaintTicket createTicket(ComplaintTicket complaintTicket) {
+    public ComplaintTicket createTicket(TicketCreationRequest ticketRequest, Authentication authentication) {
+        logger.debug("create complaint ticket accessed in service");
+        var currentUser = (TicketingUser) authentication.getPrincipal();
+        var complaintTicket = (ComplaintTicket) TicketFactory.createNewTicket(TicketType.COMPLAINT, currentUser);
         Errors errors = new BeanPropertyBindingResult(complaintTicket, "complaintTicket");
-        logger.debug("save complaint ticket accessed in service");
         complaintTicketValidator.validate(complaintTicket, errors);
         if (errors.hasErrors()) {
             throw new ValidationException("Complaint Ticket validation failed: " + errors.getAllErrors());
         }
-        return complaintTicketRepository.save(complaintTicket);
+        complaintTicket.setTicketElement(ticketRequest.getTicketElement());
+        complaintTicket.setDescription(ticketRequest.getDescription());
+
+
+        return  complaintTicketRepository.save(complaintTicket);
     }
 
 
@@ -85,7 +96,10 @@ public class ComplaintTicketService {
                         () -> new TicketNotFoundException("No complaint ticket with id " + ticketId)
                 );
 
-        //check if the user exists and cross save the modifications
+        if (ticket.getTicketStatus() == TicketStatus.CLOSED) {
+            throw new TicketingSystemException("You are not allowed to work on this ticket because it is already closed. ");
+        }
+
         var assignedToUser = ticketingUserRepository.findByUsername(assignedTo.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("No user with name " + assignedTo));
 
@@ -98,38 +112,45 @@ public class ComplaintTicketService {
         }
 
         ticket.setAssignedTo(assignedTo);
-        ticket.setTicketStatus(TicketStatus.ASSIGNED);
+        if (ticket.getTicketStatus() != TicketStatus.ASSIGNED) {
+            ticket.setTicketStatus(TicketStatus.ASSIGNED);
+        }
+
+        //TODO: notify user about the new assigned ticket on hime/her
+
         return ticket;
     }
 
 
     @Transactional
-    public ComplaintTicket workingOnTicket(Long id, TicketingUser currentUser, Authentication authentication) {
-        logger.debug("assignTicket complaint ticket accessed in service");
+    public ComplaintTicket editTicket(Long id, ComplaintTicketRequest updatedComplaintTicketRequest, Authentication authentication) {
+        logger.debug("workingOnTicket complaint ticket accessed in service");
         var ticket = complaintTicketRepository
                 .findById(id).orElseThrow(
                         () -> new TicketNotFoundException("No complaint ticket with id " + id)
                 );
-        //TODO: check if the user exists and cross save the modifications
-//        var assignedToUser = userRepository
-//                .findByName(assignedTo).orElseThrow(
-//                        () -> new UserNotFoundException("No user with name " + assignedTo)
-//                );
-        //TODO: check if the current user is the assigned user otherwise notify the user
 
-        //TODO: enable editing description
-        //TODO: enable editing element
+        if (ticket.getTicketStatus() == TicketStatus.CLOSED) {
+            throw new TicketingSystemException("You are not allowed to work on this ticket because it is already closed. ");
+        }
 
+        //check if the current user is the assigned user otherwise notify the user
+        if (!ticket.getAssignedTo().equals(authentication.getPrincipal())) {
+            throw new TicketingSystemException("You are not allowed to work on this ticket because " +
+                    "you are not assigned to it. ");
+        }
 
+        ticket.setTicketElement(updatedComplaintTicketRequest.getTicketElement());
+        ticket.setDescription(updatedComplaintTicketRequest.getDescription());
         ticket.setTicketStatus(TicketStatus.IN_PROGRESS);
+
         return ticket;
     }
 
 
     @Transactional
     public ComplaintTicket closeTicket(Long id, Authentication authentication,
-                                       String solutionDescription,
-                                       SolutionType solutionType) {
+                                       TicketCloseRequest ticketCloseRequest) {
         logger.debug("closeTicket complaint ticket accessed in service");
         var currentUser = (TicketingUser) authentication.getPrincipal();
 
@@ -138,15 +159,18 @@ public class ComplaintTicketService {
                         () -> new TicketNotFoundException("No complaint ticket with id " + id)
                 );
 
+        if (ticket.getTicketStatus() == TicketStatus.CLOSED) {
+            throw new TicketingSystemException("You are not allowed to work on this ticket because it is already closed. ");
+        }
+
         if (!ticket.getAssignedTo().equals(currentUser))
-            throw new TicketingSystemException("You are not allowed to close this ticket because you are not assigned to it. ");
+            throw new TicketingSystemException("You are not allowed to close this ticket because you are not " +
+                    "assigned to it. ");
 
-        ticket.setSolutionDescription(solutionDescription);
-        ticket.setSolutionType(solutionType);
-
+        ticket.setSolutionDescription(ticketCloseRequest.getSolutionDescription());
+        ticket.setSolutionType(ticketCloseRequest.getSolutionType());
         ticket.setClosedBy(currentUser);
         ticket.setClosedWhen(LocalDateTime.now());
-
 
         //TODO: send notification about the closeing event
 

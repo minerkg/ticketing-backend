@@ -10,17 +10,21 @@ import lombok.*;
 import java.io.Serializable;
 
 @Entity
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Getter
+@Setter
 public class TicketElement implements Serializable {
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String name;
+
+    private TicketElementStatus ticketElementStatus;
+
 
 }

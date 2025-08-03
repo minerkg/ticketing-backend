@@ -2,13 +2,13 @@ package org.ubb.ticketing;
 
 import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
-import org.ubb.ticketing.domain.Ticket;
-import org.ubb.ticketing.domain.TicketFactory;
-import org.ubb.ticketing.domain.TicketType;
-import org.ubb.ticketing.domain.complaint.ComplaintTicket;
 import org.ubb.ticketing.domain.user.UserRole;
+import org.ubb.ticketing.dto.TicketCreationRequest;
 import org.ubb.ticketing.dto.UserRegistrationRequest;
+import org.ubb.ticketing.repository.TicketingUserRepository;
 import org.ubb.ticketing.service.ComplaintTicketService;
 import org.ubb.ticketing.service.user.TicketingUserService;
 
@@ -19,18 +19,18 @@ public class AddInitialData implements CommandLineRunner {
     private final TicketingUserService ticketingUserService;
 
     private final Dotenv dotenv;
+    private final TicketingUserRepository ticketingUserRepository;
 
-    public AddInitialData(ComplaintTicketService complaintTicketService, TicketingUserService ticketingUserService) {
+    public AddInitialData(ComplaintTicketService complaintTicketService, TicketingUserService ticketingUserService, TicketingUserRepository ticketingUserRepository) {
         this.complaintTicketService = complaintTicketService;
         this.ticketingUserService = ticketingUserService;
         this.dotenv = Dotenv.load();
-
+        this.ticketingUserRepository = ticketingUserRepository;
     }
 
     @Override
     public void run(String... args) throws Exception {
-        Ticket complaintTicket = TicketFactory.createNewTicket(TicketType.COMPLAINT);
-        complaintTicketService.createTicket((ComplaintTicket) complaintTicket);
+
 
         String usernameAdmin = dotenv.get("USERNAME_ADMIN");
         String passwordAdmin = dotenv.get("PASSWORD_ADMIN");
@@ -42,9 +42,25 @@ public class AddInitialData implements CommandLineRunner {
                 .email("ors@ticketing.com")
                 .build();
 
-        var tudto = ticketingUserService.registerUser(adminUser);
+        var ticketingUserDto = ticketingUserService.registerUser(adminUser);
+        var createdUser = ticketingUserRepository.findByUsername(ticketingUserDto.getUsername()).orElseThrow(
+                () -> new RuntimeException("User not found: " + ticketingUserDto.getUsername())
+        );
 
-        ticketingUserService.updateUserRole(tudto.getUsername(), UserRole.ADMIN);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                createdUser,
+                createdUser.getPassword(),
+                createdUser.getAuthorities()
+        );
+
+        complaintTicketService.createTicket(
+                TicketCreationRequest.builder()
+                        .ticketElement()
+                        .description()
+                        .build(),
+                authentication);
+
+        ticketingUserService.updateUserRole(ticketingUserDto.getUsername(), UserRole.ADMIN);
     }
 
 }
