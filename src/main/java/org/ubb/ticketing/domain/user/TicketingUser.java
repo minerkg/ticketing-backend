@@ -3,9 +3,11 @@ package org.ubb.ticketing.domain.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.UuidGenerator;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -16,10 +18,6 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
-
-import jakarta.validation.constraints.*;
-import org.ubb.ticketing.domain.Ticket;
-import org.ubb.ticketing.domain.complaint.ComplaintTicket;
 
 @Entity
 @Getter
@@ -61,7 +59,7 @@ public class TicketingUser implements UserDetails, Serializable {
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Enumerated(EnumType.STRING)
-    @Column(nullable=false)
+    @Column(nullable = false)
     private UserRole userRole;
     @Column(nullable = false, updatable = false)
 

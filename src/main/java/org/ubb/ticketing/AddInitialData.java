@@ -1,9 +1,11 @@
 package org.ubb.ticketing;
 
 import io.github.cdimascio.dotenv.Dotenv;
+import jakarta.transaction.Transactional;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.ubb.ticketing.domain.user.UserRole;
 import org.ubb.ticketing.dto.TicketCreationRequest;
@@ -31,6 +33,7 @@ public class AddInitialData implements CommandLineRunner {
         this.ticketingUserRepository = ticketingUserRepository;
     }
 
+
     @Override
     public void run(String... args) throws Exception {
 
@@ -56,6 +59,7 @@ public class AddInitialData implements CommandLineRunner {
                 createdUser.getAuthorities()
         );
 
+
         ticketElementService.createTicketElement("Billing complaint");
         ticketElementService.createTicketElement("Service complaint");
         ticketElementService.createTicketElement("Other complaint");
@@ -66,6 +70,7 @@ public class AddInitialData implements CommandLineRunner {
                         .description("Test ticket")
                         .build(),
                 authentication);
+
 
         ticketingUserService.updateUserRole(ticketingUserDto.getUsername(), UserRole.ADMIN);
     }

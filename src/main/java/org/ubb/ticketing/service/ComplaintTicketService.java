@@ -61,10 +61,18 @@ public class ComplaintTicketService {
                 );
     }
 
+    @Transactional
     public ComplaintTicket createTicket(TicketCreationRequest ticketRequest, Authentication authentication) {
         logger.debug("create complaint ticket accessed in service");
         var currentUser = (TicketingUser) authentication.getPrincipal();
-        var complaintTicket = (ComplaintTicket) TicketFactory.createNewTicket(TicketType.COMPLAINT, currentUser);
+        logger.debug("Current user: {}", currentUser.getUsername());
+        var user = ticketingUserRepository.findByUsername(currentUser.getUsername()).orElseThrow(
+                () -> new UserNotFoundException("User not found with username: " + currentUser.getUsername())
+        );
+        var complaintTicket = (ComplaintTicket) TicketFactory.createNewTicket(TicketType.COMPLAINT, user);
+
+
+
         Errors errors = new BeanPropertyBindingResult(complaintTicket, "complaintTicket");
         complaintTicketValidator.validate(complaintTicket, errors);
         if (errors.hasErrors()) {
@@ -72,6 +80,7 @@ public class ComplaintTicketService {
         }
         complaintTicket.setTicketElement(ticketRequest.getTicketElement());
         complaintTicket.setDescription(ticketRequest.getDescription());
+        complaintTicket.setCreatedBy(user);
 
 
         return  complaintTicketRepository.save(complaintTicket);

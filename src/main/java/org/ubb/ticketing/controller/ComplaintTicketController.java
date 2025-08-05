@@ -51,19 +51,21 @@ public class ComplaintTicketController {
         }
     }
 
-    public ResponseEntity<ApiResponse<ComplaintTicket>> createTicket(Authentication authentication) {
-
-    }
-
-    public ResponseEntity<ApiResponse<ComplaintTicket>> assignTicket(Long id, Authentication authentication) {
-
-    }
-
-    public ResponseEntity<ApiResponse<ComplaintTicket>> closeTicket(Long id, Authentication authentication) {
-
-    }
-
-    public ResponseEntity<ApiResponse<ComplaintTicket>> workingOnTicket(Long id, Authentication authentication) {}
+//    public ResponseEntity<ApiResponse<ComplaintTicket>> createTicket(Authentication authentication) {
+//
+//    }
+//
+//    public ResponseEntity<ApiResponse<ComplaintTicket>> assignTicket(Long id, Authentication authentication) {
+//
+//    }
+//
+//    public ResponseEntity<ApiResponse<ComplaintTicket>> closeTicket(Long id, Authentication authentication) {
+//
+//    }
+//
+//    public ResponseEntity<ApiResponse<ComplaintTicket>> workingOnTicket(Long id, Authentication authentication) {
+//
+//    }
 
 
 
