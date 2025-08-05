@@ -9,7 +9,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
-import org.ubb.ticketing.domain.TicketElement;
 import org.ubb.ticketing.domain.TicketFactory;
 import org.ubb.ticketing.domain.TicketStatus;
 import org.ubb.ticketing.domain.TicketType;
@@ -17,8 +16,8 @@ import org.ubb.ticketing.domain.complaint.ComplaintTicket;
 import org.ubb.ticketing.domain.user.TicketingUser;
 import org.ubb.ticketing.domain.validator.ComplaintTicketValidator;
 import org.ubb.ticketing.dto.ComplaintTicketRequest;
-import org.ubb.ticketing.dto.TicketCreationRequest;
 import org.ubb.ticketing.dto.TicketCloseRequest;
+import org.ubb.ticketing.dto.TicketCreationRequest;
 import org.ubb.ticketing.exception.TicketNotFoundException;
 import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.exception.UserNotFoundException;
@@ -71,8 +70,6 @@ public class ComplaintTicketService {
         );
         var complaintTicket = (ComplaintTicket) TicketFactory.createNewTicket(TicketType.COMPLAINT, user);
 
-
-
         Errors errors = new BeanPropertyBindingResult(complaintTicket, "complaintTicket");
         complaintTicketValidator.validate(complaintTicket, errors);
         if (errors.hasErrors()) {
@@ -80,10 +77,9 @@ public class ComplaintTicketService {
         }
         complaintTicket.setTicketElement(ticketRequest.getTicketElement());
         complaintTicket.setDescription(ticketRequest.getDescription());
-        complaintTicket.setCreatedBy(user);
 
 
-        return  complaintTicketRepository.save(complaintTicket);
+        return complaintTicketRepository.save(complaintTicket);
     }
 
 
