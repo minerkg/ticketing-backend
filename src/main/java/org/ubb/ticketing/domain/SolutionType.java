@@ -23,6 +23,8 @@ public class SolutionType implements Serializable {
 
     private String name;
 
+    private TicketParameterStatus solutionTypeStatus;
+
 
 
 

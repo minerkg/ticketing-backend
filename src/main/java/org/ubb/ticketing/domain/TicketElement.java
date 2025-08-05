@@ -24,7 +24,7 @@ public class TicketElement implements Serializable {
 
     private String name;
 
-    private TicketElementStatus ticketElementStatus;
+    private TicketParameterStatus ticketElementStatus;
 
 
 }

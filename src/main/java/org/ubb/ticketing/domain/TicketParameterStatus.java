@@ -1,6 +1,6 @@
 package org.ubb.ticketing.domain;
 
-public enum TicketElementStatus {
+public enum TicketParameterStatus {
 
     ACTIVE,
     INACTIVE
