@@ -10,7 +10,7 @@ import org.ubb.ticketing.service.type.TicketElementService;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/ticket-elements")
+@RequestMapping("/ticket-element")
 public class TicketElementController {
 
     private final TicketElementService ticketElementService;

@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/complaint-tickets")
+@RequestMapping("/complaint-ticket")
 public class ComplaintTicketController {
     private final ComplaintTicketService complaintTicketService;
     private final Logger logger = LoggerFactory.getLogger(ComplaintTicketController.class);
