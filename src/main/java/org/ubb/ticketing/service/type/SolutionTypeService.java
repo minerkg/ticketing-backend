@@ -47,21 +47,21 @@ public class SolutionTypeService {
     }
 
     @Transactional
-    public TicketElement deactivateTicketElement(Long id) {
-        logger.info("Deactivating ticket element method accessed");
-        var ticketElement = ticketElementRepository
-                .findById(id).orElseThrow(() -> new TicketParameterException("No ticket element with id " + id));
-        ticketElement.setTicketElementStatus(TicketParameterStatus.INACTIVE);
-        return ticketElement;
+    public SolutionType deactivateSolutionType(Long id) {
+        logger.info("Deactivating SolutionType method accessed");
+        var solutionType = solutionTypeRepository
+                .findById(id).orElseThrow(() -> new TicketParameterException("No solution type with id " + id));
+        solutionType.setSolutionTypeStatus(TicketParameterStatus.INACTIVE);
+        return solutionType;
     }
 
     @Transactional
-    public TicketElement reactivateTicketElement(Long id) {
-        logger.info("Reactivating ticket element method accessed");
-        var ticketElement = ticketElementRepository
-                .findById(id).orElseThrow(() -> new TicketParameterException("No ticket element with id " + id));
-        ticketElement.setTicketElementStatus(TicketParameterStatus.ACTIVE);
-        return ticketElement;
+    public SolutionType reactivateSolutionType(Long id) {
+        logger.info("Reactivating SolutionType method accessed");
+        var solutionType = solutionTypeRepository
+                .findById(id).orElseThrow(() -> new TicketParameterException("No solution type with id " + id));
+        solutionType.setSolutionTypeStatus(TicketParameterStatus.ACTIVE);
+        return solutionType;
     }
 
 }
