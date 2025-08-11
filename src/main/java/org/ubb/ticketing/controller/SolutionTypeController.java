@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.ubb.ticketing.domain.SolutionType;
-import org.ubb.ticketing.domain.TicketElement;
 import org.ubb.ticketing.exception.TicketParameterException;
 import org.ubb.ticketing.service.type.SolutionTypeService;
 
@@ -19,6 +18,7 @@ public class SolutionTypeController {
 
     private final SolutionTypeService solutionTypeService;
     private final Logger logger = LoggerFactory.getLogger(SolutionTypeController.class);
+
     public SolutionTypeController(SolutionTypeService solutionTypeService) {
         this.solutionTypeService = solutionTypeService;
     }
@@ -84,10 +84,6 @@ public class SolutionTypeController {
             return ResponseEntity.internalServerError().build();
         }
     }
-
-
-
-
 
 
 }
