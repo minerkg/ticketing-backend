@@ -2,12 +2,14 @@ package org.ubb.ticketing.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
 import org.ubb.ticketing.domain.user.TicketingUser;
 import org.ubb.ticketing.dto.TicketingUserDto;
 
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public interface TicketingUserRepository extends JpaRepository<TicketingUser, Long> {
 
     Optional<TicketingUser> findByUsername(String username);

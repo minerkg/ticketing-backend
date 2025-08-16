@@ -7,7 +7,7 @@ import org.ubb.ticketing.dto.TicketingUserDto;
 @Component
 public class UserDtoConverter extends BaseConverter<TicketingUser, TicketingUserDto> {
     @Override
-    TicketingUser convertDtoToModel(TicketingUserDto dto) {
+    public TicketingUser convertDtoToModel(TicketingUserDto dto) {
         return TicketingUser.builder()
                 .username(dto.getUsername())
                 .firstName(dto.getFirstName())

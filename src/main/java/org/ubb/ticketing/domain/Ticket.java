@@ -8,6 +8,7 @@ import org.ubb.ticketing.domain.user.TicketingUser;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @MappedSuperclass
 @Getter
@@ -31,7 +32,7 @@ public abstract class Ticket implements Serializable {
 
     private LocalDateTime createdWhen;
 
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.ALL)
     private TicketingUser createdBy;
 
     private String description;
@@ -42,7 +43,7 @@ public abstract class Ticket implements Serializable {
 
 
     private Integer slaHours;
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.ALL)
     private TicketingUser assignedTo;
     private LocalDateTime assignedWhen;
 
@@ -50,10 +51,16 @@ public abstract class Ticket implements Serializable {
     private SolutionType solutionType;
 
     private String solutionDescription;
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.ALL)
     private TicketingUser closedBy;
     private LocalDateTime closedWhen;
 
+    @ManyToOne(cascade = CascadeType.ALL)
+    private TicketingUser cancelledBy;
+    private LocalDateTime cancelledWhen;
 
 
+    public Optional<TicketingUser> getAssignedTo() {
+        return Optional.ofNullable(assignedTo);
+    }
 }

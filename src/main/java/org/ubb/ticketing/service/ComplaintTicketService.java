@@ -5,19 +5,31 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.ValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
-import org.ubb.ticketing.domain.SolutionType;
+import org.ubb.ticketing.domain.TicketFactory;
 import org.ubb.ticketing.domain.TicketStatus;
+import org.ubb.ticketing.domain.TicketType;
 import org.ubb.ticketing.domain.complaint.ComplaintTicket;
 import org.ubb.ticketing.domain.user.TicketingUser;
 import org.ubb.ticketing.domain.validator.ComplaintTicketValidator;
+import org.ubb.ticketing.dto.ComplaintTicketRequest;
+import org.ubb.ticketing.dto.TicketCloseRequest;
+import org.ubb.ticketing.dto.TicketCreationRequest;
+import org.ubb.ticketing.dto.TicketingUserDto;
 import org.ubb.ticketing.exception.TicketNotFoundException;
+import org.ubb.ticketing.exception.TicketingSystemException;
+import org.ubb.ticketing.exception.UserNotFoundException;
 import org.ubb.ticketing.repository.ComplaintTicketRepository;
+import org.ubb.ticketing.repository.SolutionTypeRepository;
+import org.ubb.ticketing.repository.TicketElementRepository;
+import org.ubb.ticketing.repository.TicketingUserRepository;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -27,11 +39,19 @@ public class ComplaintTicketService {
     private final ComplaintTicketRepository complaintTicketRepository;
     private final ComplaintTicketValidator complaintTicketValidator;
     private final Logger logger = LoggerFactory.getLogger(ComplaintTicketService.class);
+    private final TicketingUserRepository ticketingUserRepository;
+    private final TicketElementRepository ticketElementRepository;
+    private final SolutionTypeRepository solutionTypeRepository;
 
     public ComplaintTicketService(ComplaintTicketRepository complaintTicketRepository,
-                                  ComplaintTicketValidator complaintTicketValidator) {
+                                  ComplaintTicketValidator complaintTicketValidator,
+                                  TicketingUserRepository ticketingUserRepository,
+                                  TicketElementRepository ticketElementRepository, SolutionTypeRepository solutionTypeRepository) {
         this.complaintTicketRepository = complaintTicketRepository;
         this.complaintTicketValidator = complaintTicketValidator;
+        this.ticketingUserRepository = ticketingUserRepository;
+        this.ticketElementRepository = ticketElementRepository;
+        this.solutionTypeRepository = solutionTypeRepository;
     }
 
 
@@ -49,88 +69,144 @@ public class ComplaintTicketService {
                 );
     }
 
-    public ComplaintTicket save(ComplaintTicket complaintTicket) {
+    @Transactional
+    public ComplaintTicket createTicket(TicketCreationRequest ticketRequest, Authentication authentication) {
+        logger.debug("create complaint ticket accessed in service");
+        var currentUser = (TicketingUser) authentication.getPrincipal();
+        logger.debug("Current user: {}", currentUser.getUsername());
+        var user = ticketingUserRepository.findByUsername(currentUser.getUsername()).orElseThrow(
+                () -> new UserNotFoundException("User not found with username: " + currentUser.getUsername())
+        );
+        var complaintTicket = (ComplaintTicket) TicketFactory.createNewTicket(TicketType.COMPLAINT, user);
+
         Errors errors = new BeanPropertyBindingResult(complaintTicket, "complaintTicket");
-        logger.debug("save complaint ticket accessed in service");
         complaintTicketValidator.validate(complaintTicket, errors);
         if (errors.hasErrors()) {
             throw new ValidationException("Complaint Ticket validation failed: " + errors.getAllErrors());
         }
+        complaintTicket.setTicketElement(ticketElementRepository
+                .findByName(ticketRequest.getTicketElementName()).getFirst());
+        complaintTicket.setDescription(ticketRequest.getDescription());
+
+
         return complaintTicketRepository.save(complaintTicket);
     }
 
-    public void deleteById(Long id) {
-        logger.debug("delete complaint ticket by id accessed in service");
-        complaintTicketRepository
-                .findById(id).orElseThrow(
-                        () -> new TicketNotFoundException("No complaint ticket with id " + id)
-                );
-        complaintTicketRepository.deleteById(id);
-    }
 
     @Transactional
-    public ComplaintTicket assignTicket(Long id, TicketingUser assignedTo, TicketingUser currentUser) {
+    public ComplaintTicket assignTicket(Long ticketId, TicketingUserDto assignedToDto, Authentication authentication) {
         logger.debug("assignTicket complaint ticket accessed in service");
+        var currentUser = (TicketingUser) authentication.getPrincipal();
+
         var ticket = complaintTicketRepository
-                .findById(id).orElseThrow(
-                        () -> new TicketNotFoundException("No complaint ticket with id " + id)
+                .findById(ticketId).orElseThrow(
+                        () -> new TicketNotFoundException("No complaint ticket with id " + ticketId)
                 );
 
-        //TODO: check if the user exists and cross save the modifications
-//        var assignedToUser = userRepository
-//                .findByName(assignedTo).orElseThrow(
-//                        () -> new UserNotFoundException("No user with name " + assignedTo)
-//                );
-        //TODO: check if the current user is the user who wants to assign to himself the ticket wit any role or has supervisor role
+        if (ticket.getTicketStatus() == TicketStatus.CLOSED) {
+            throw new TicketingSystemException("You are not allowed to work on this ticket because it is already closed. ");
+        }
 
-        ticket.setAssignedTo(assignedTo);
-        ticket.setTicketStatus(TicketStatus.ASSIGNED);
+        var assignedToUser = ticketingUserRepository.findByUsername(assignedToDto.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("No user with name " + assignedToDto.getUsername()));
+
+        //check if the current user is the user who wants to assign to himself the ticket with any role or has a supervisor role
+        if (!currentUser.getUserId().equals(assignedToUser.getUserId()) &&
+                currentUser.getAuthorities().stream()
+                        .noneMatch(a -> a.getAuthority().equals("ROLE_SUPERVISOR")
+                                || a.getAuthority().equals("ROLE_ADMIN"))) {
+            throw new TicketingSystemException("You are not allowed to assign this ticket to " + assignedToUser.getUsername() +
+                    " because you are not the assigned user or you are not an admin.");
+        }
+
+        ticket.setAssignedTo(assignedToUser);
+        if (ticket.getTicketStatus() != TicketStatus.ASSIGNED) {
+            ticket.setTicketStatus(TicketStatus.ASSIGNED);
+        }
+        ticket.setAssignedWhen(LocalDateTime.now());
+
+        //TODO: notify user about the new assigned ticket on hime/her
+
         return ticket;
     }
 
 
     @Transactional
-    public ComplaintTicket workingOnTicket(Long id, TicketingUser currentUser) {
-        logger.debug("assignTicket complaint ticket accessed in service");
+    public ComplaintTicket editTicket(Long id, ComplaintTicketRequest updatedComplaintTicketRequest, Authentication authentication) {
+        logger.debug("workingOnTicket complaint ticket accessed in service");
         var ticket = complaintTicketRepository
                 .findById(id).orElseThrow(
                         () -> new TicketNotFoundException("No complaint ticket with id " + id)
                 );
-        //TODO: check if the user exists and cross save the modifications
-//        var assignedToUser = userRepository
-//                .findByName(assignedTo).orElseThrow(
-//                        () -> new UserNotFoundException("No user with name " + assignedTo)
-//                );
-        //TODO: check if the current user is the assigned user otherwise notify the user
 
-        //TODO: enable editing description
-        //TODO: enable editing element
+        if (ticket.getTicketStatus() == TicketStatus.CLOSED) {
+            throw new TicketingSystemException("You are not allowed to work on this ticket because it is already closed. ");
+        }
 
+        //check if the current user is the assigned user otherwise notify the user
+        var user = (TicketingUser) authentication.getPrincipal();
+        var currentUser = ticketingUserRepository.findByUsername(user.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("No user with name " + user.getUsername()));
+
+
+        ticket.getAssignedTo().orElseThrow(() -> new TicketingSystemException("The ticket is not assigned to anyone."));
+        ticket.getAssignedTo().ifPresent(ticketUser -> {
+            if (!ticketUser.getUserId().equals(currentUser.getUserId())) {
+                throw new TicketingSystemException("You are not allowed to close this ticket because you are not " +
+                        "assigned to it. ");
+            }
+        });
+
+        if (updatedComplaintTicketRequest.getTicketElementName() != null
+                && !updatedComplaintTicketRequest.getTicketElementName().isBlank()) {
+            ticket.setTicketElement(ticketElementRepository
+                    .findByName(updatedComplaintTicketRequest.getTicketElementName()).getFirst());
+        }
+
+        if (updatedComplaintTicketRequest.getDescription() != null
+                && !updatedComplaintTicketRequest.getDescription().isBlank()) {
+            ticket.setDescription(updatedComplaintTicketRequest.getDescription());
+        }
 
         ticket.setTicketStatus(TicketStatus.IN_PROGRESS);
+
         return ticket;
     }
 
 
     @Transactional
-    public ComplaintTicket closeTicket(Long id, TicketingUser currentUser,
-                                       String solutionDescription,
-                                       SolutionType solutionType) {
+    public ComplaintTicket closeTicket(Long id, Authentication authentication,
+                                       TicketCloseRequest ticketCloseRequest) {
         logger.debug("closeTicket complaint ticket accessed in service");
+        var currentUser = (TicketingUser) authentication.getPrincipal();
+
+        var currentUserFromRepo = ticketingUserRepository
+                .findByUsername(currentUser.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("No user with name " + currentUser.getUsername()));
+
         var ticket = complaintTicketRepository
                 .findById(id).orElseThrow(
                         () -> new TicketNotFoundException("No complaint ticket with id " + id)
                 );
 
+        if (ticket.getTicketStatus() == TicketStatus.CLOSED) {
+            throw new TicketingSystemException("You are not allowed to work on this ticket because it is already closed. ");
+        }
 
-        //TODO: check if the user is granted to close tickets and the ticket is assignet to teh current user
+        ticket.getAssignedTo().orElseThrow(() -> new TicketingSystemException("The ticket is not assigned to anyone."));
 
-        ticket.setSolutionDescription(solutionDescription);
-        ticket.setSolutionType(solutionType);
+        ticket.getAssignedTo().ifPresent(user -> {
+            if (!user.getUserId().equals(currentUserFromRepo.getUserId())) {
+                throw new TicketingSystemException("You are not allowed to close this ticket because you are not " +
+                        "assigned to it. ");
+            }
+        });
 
-        ticket.setClosedBy(currentUser);
+
+        ticket.setSolutionDescription(ticketCloseRequest.getSolutionDescription());
+        ticket.setSolutionType(solutionTypeRepository.findByName(ticketCloseRequest.getSolutionTypeName()).getFirst());
+        ticket.setClosedBy(currentUserFromRepo);
         ticket.setClosedWhen(LocalDateTime.now());
-
 
         //TODO: send notification about the closeing event
 
@@ -140,4 +216,45 @@ public class ComplaintTicketService {
     }
 
 
+    public List<ComplaintTicket> getCurrentUserAssignedTickets(Authentication authentication) {
+        logger.debug("getCurrentUserTickets complaint ticket accessed in service");
+        var currentUser = (TicketingUser) authentication.getPrincipal();
+        return complaintTicketRepository.findAll()
+                .stream()
+                .filter(ct -> ct.getTicketStatus() == TicketStatus.ASSIGNED
+                        && ct.getAssignedTo().isPresent()
+                        && ct.getAssignedTo().get().getUserId().equals(currentUser.getUserId()))
+                .toList();
+
+    }
+
+    @Transactional
+    public ComplaintTicket cancelTicket(Long ticketId, Authentication authentication) {
+        logger.debug("cancelTicket complaint ticket accessed in service");
+        var currentUser = (TicketingUser) authentication.getPrincipal();
+        var ticket = complaintTicketRepository
+                .findById(ticketId).orElseThrow(
+                        () -> new TicketNotFoundException("No complaint ticket with id " + ticketId)
+                );
+        var currentUserFromRepo = ticketingUserRepository
+                .findByUsername(currentUser.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("No user with name " + currentUser.getUsername()));
+
+
+        //Only the user who created the ticket can cancel it or the admin or supervisor
+        if (currentUserFromRepo.getAuthorities().stream()
+                .noneMatch(a -> a.getAuthority().equals("ROLE_SUPERVISOR")
+                        || a.getAuthority().equals("ROLE_ADMIN"))
+                && !ticket.getCreatedBy().getUserId().equals(currentUserFromRepo.getUserId())) {
+            throw new TicketingSystemException("You are not allowed to cancel this ticket because you are" +
+                    " not admin/supervisor or the creator of the ticket. ");
+        }
+
+        ticket.setTicketStatus(TicketStatus.CANCELLED);
+        ticket.setCancelledBy(currentUserFromRepo);
+        ticket.setCancelledWhen(LocalDateTime.now());
+
+        return ticket;
+
+    }
 }
