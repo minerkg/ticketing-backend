@@ -123,6 +123,7 @@ public class ComplaintTicketService {
         if (ticket.getTicketStatus() != TicketStatus.ASSIGNED) {
             ticket.setTicketStatus(TicketStatus.ASSIGNED);
         }
+        ticket.setAssignedWhen(LocalDateTime.now());
 
         //TODO: notify user about the new assigned ticket on hime/her
 
@@ -193,7 +194,8 @@ public class ComplaintTicketService {
         var currentUser = (TicketingUser) authentication.getPrincipal();
         return complaintTicketRepository.findAll()
                 .stream()
-                .filter(ct -> ct.getAssignedTo().isPresent() && ct.getAssignedTo().get().equals(currentUser))
+                .filter(ct -> ct.getAssignedTo().isPresent()
+                        && ct.getAssignedTo().get().getUserId().equals(currentUser.getUserId()))
                 .toList();
 
     }
