@@ -18,6 +18,7 @@ import org.ubb.ticketing.domain.validator.ComplaintTicketValidator;
 import org.ubb.ticketing.dto.ComplaintTicketRequest;
 import org.ubb.ticketing.dto.TicketCloseRequest;
 import org.ubb.ticketing.dto.TicketCreationRequest;
+import org.ubb.ticketing.dto.TicketingUserDto;
 import org.ubb.ticketing.exception.TicketNotFoundException;
 import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.exception.UserNotFoundException;
@@ -93,9 +94,10 @@ public class ComplaintTicketService {
 //    }
 
     @Transactional
-    public ComplaintTicket assignTicket(Long ticketId, TicketingUser assignedTo, Authentication authentication) {
+    public ComplaintTicket assignTicket(Long ticketId, TicketingUserDto assignedToDto, Authentication authentication) {
         logger.debug("assignTicket complaint ticket accessed in service");
         var currentUser = (TicketingUser) authentication.getPrincipal();
+
         var ticket = complaintTicketRepository
                 .findById(ticketId).orElseThrow(
                         () -> new TicketNotFoundException("No complaint ticket with id " + ticketId)
@@ -105,18 +107,19 @@ public class ComplaintTicketService {
             throw new TicketingSystemException("You are not allowed to work on this ticket because it is already closed. ");
         }
 
-        var assignedToUser = ticketingUserRepository.findByUsername(assignedTo.getUsername())
-                .orElseThrow(() -> new UserNotFoundException("No user with name " + assignedTo));
+        var assignedToUser = ticketingUserRepository.findByUsername(assignedToDto.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("No user with name " + assignedToDto.getUsername()));
 
         //check if the current user is the user who wants to assign to himself the ticket with any role or has supervisor role
         if (!currentUser.equals(assignedToUser) &&
                 currentUser.getAuthorities().stream()
-                        .noneMatch(a -> a.getAuthority().equals("ROLE_SUPERVISOR"))) {
-            throw new TicketingSystemException("You are not allowed to assign this ticket to " + assignedTo.getUsername() +
+                        .noneMatch(a -> a.getAuthority().equals("ROLE_SUPERVISOR")
+                                || a.getAuthority().equals("ROLE_ADMIN"))) {
+            throw new TicketingSystemException("You are not allowed to assign this ticket to " + assignedToUser.getUsername() +
                     " because you are not the assigned user or you are not an admin.");
         }
 
-        ticket.setAssignedTo(assignedTo);
+        ticket.setAssignedTo(assignedToUser);
         if (ticket.getTicketStatus() != TicketStatus.ASSIGNED) {
             ticket.setTicketStatus(TicketStatus.ASSIGNED);
         }
