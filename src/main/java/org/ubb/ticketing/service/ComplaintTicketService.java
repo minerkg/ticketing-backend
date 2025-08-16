@@ -241,7 +241,7 @@ public class ComplaintTicketService {
                 .orElseThrow(() -> new UserNotFoundException("No user with name " + currentUser.getUsername()));
 
 
-        //Only the user who created the ticket can cancel it or the admin
+        //Only the user who created the ticket can cancel it or the admin or supervisor
         if (currentUserFromRepo.getAuthorities().stream()
                 .noneMatch(a -> a.getAuthority().equals("ROLE_SUPERVISOR")
                         || a.getAuthority().equals("ROLE_ADMIN"))
