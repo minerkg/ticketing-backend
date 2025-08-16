@@ -55,6 +55,10 @@ public abstract class Ticket implements Serializable {
     private TicketingUser closedBy;
     private LocalDateTime closedWhen;
 
+    @ManyToOne(cascade = CascadeType.ALL)
+    private TicketingUser cancelledBy;
+    private LocalDateTime cancelledWhen;
+
 
     public Optional<TicketingUser> getAssignedTo() {
         return Optional.ofNullable(assignedTo);

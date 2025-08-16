@@ -110,8 +110,8 @@ public class ComplaintTicketService {
         var assignedToUser = ticketingUserRepository.findByUsername(assignedToDto.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("No user with name " + assignedToDto.getUsername()));
 
-        //check if the current user is the user who wants to assign to himself the ticket with any role or has supervisor role
-        if (!currentUser.equals(assignedToUser) &&
+        //check if the current user is the user who wants to assign to himself the ticket with any role or has a supervisor role
+        if (!currentUser.getUserId().equals(assignedToUser.getUserId()) &&
                 currentUser.getAuthorities().stream()
                         .noneMatch(a -> a.getAuthority().equals("ROLE_SUPERVISOR")
                                 || a.getAuthority().equals("ROLE_ADMIN"))) {
@@ -221,13 +221,40 @@ public class ComplaintTicketService {
         var currentUser = (TicketingUser) authentication.getPrincipal();
         return complaintTicketRepository.findAll()
                 .stream()
-                .filter(ct -> ct.getAssignedTo().isPresent()
+                .filter(ct -> ct.getTicketStatus() == TicketStatus.ASSIGNED
+                        && ct.getAssignedTo().isPresent()
                         && ct.getAssignedTo().get().getUserId().equals(currentUser.getUserId()))
                 .toList();
 
     }
 
+    @Transactional
     public ComplaintTicket cancelTicket(Long ticketId, Authentication authentication) {
+        logger.debug("cancelTicket complaint ticket accessed in service");
+        var currentUser = (TicketingUser) authentication.getPrincipal();
+        var ticket = complaintTicketRepository
+                .findById(ticketId).orElseThrow(
+                        () -> new TicketNotFoundException("No complaint ticket with id " + ticketId)
+                );
+        var currentUserFromRepo = ticketingUserRepository
+                .findByUsername(currentUser.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("No user with name " + currentUser.getUsername()));
+
+
+        //Only the user who created the ticket can cancel it or the admin
+        if (currentUserFromRepo.getAuthorities().stream()
+                .noneMatch(a -> a.getAuthority().equals("ROLE_SUPERVISOR")
+                        || a.getAuthority().equals("ROLE_ADMIN"))
+                && !ticket.getCreatedBy().getUserId().equals(currentUserFromRepo.getUserId())) {
+            throw new TicketingSystemException("You are not allowed to cancel this ticket because you are" +
+                    " not admin/supervisor or the creator of the ticket. ");
+        }
+
+        ticket.setTicketStatus(TicketStatus.CANCELLED);
+        ticket.setCancelledBy(currentUserFromRepo);
+        ticket.setCancelledWhen(LocalDateTime.now());
+
+        return ticket;
 
     }
 }

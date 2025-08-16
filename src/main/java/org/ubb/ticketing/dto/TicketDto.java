@@ -31,6 +31,8 @@ public class TicketDto {
     private String solutionDescription;
     private TicketingUserDto closedBy;
     private LocalDateTime closedWhen;
+    private TicketingUserDto cancelledBy;
+    private LocalDateTime cancelledWhen;
 
 
 }
