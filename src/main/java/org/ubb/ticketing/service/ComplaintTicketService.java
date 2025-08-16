@@ -9,6 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
+import org.ubb.ticketing.domain.Comment;
 import org.ubb.ticketing.domain.TicketFactory;
 import org.ubb.ticketing.domain.TicketStatus;
 import org.ubb.ticketing.domain.TicketType;
@@ -255,6 +256,31 @@ public class ComplaintTicketService {
         ticket.setCancelledWhen(LocalDateTime.now());
 
         return ticket;
-
     }
+
+    @Transactional
+    public ComplaintTicket addComment(Long ticketId, String commentText, Authentication authentication) {
+        logger.debug("addComment complaint ticket accessed in service");
+        var currentUser = (TicketingUser) authentication.getPrincipal();
+        var ticket = complaintTicketRepository
+                .findById(ticketId).orElseThrow(
+                        () -> new TicketNotFoundException("No complaint ticket with id " + ticketId)
+                );
+        var currentUserFromRepo = ticketingUserRepository
+                .findByUsername(currentUser.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("No user with name " + currentUser.getUsername()));
+
+        List<Comment> comments = ticket.getComments();
+        comments.add(
+                Comment.builder()
+                        .commenter(currentUserFromRepo)
+                        .commentText(commentText)
+                        .commentedWhen(LocalDateTime.now())
+                        .build());
+        ticket.setComments(comments);
+        logger.debug("Comment added to ticket {}", ticket.getTicketId());
+
+        return ticket;
+    }
+
 }
