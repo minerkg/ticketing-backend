@@ -190,7 +190,7 @@ public class ComplaintTicketService {
         var currentUser = (TicketingUser) authentication.getPrincipal();
         return complaintTicketRepository.findAll()
                 .stream()
-                .filter(ct -> ct.getAssignedTo().equals(currentUser))
+                .filter(ct -> ct.getAssignedTo().isPresent() && ct.getAssignedTo().get().equals(currentUser))
                 .toList();
 
     }

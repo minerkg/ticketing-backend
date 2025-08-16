@@ -8,6 +8,7 @@ import org.ubb.ticketing.domain.user.TicketingUser;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @MappedSuperclass
 @Getter
@@ -55,5 +56,7 @@ public abstract class Ticket implements Serializable {
     private LocalDateTime closedWhen;
 
 
-
+    public Optional<TicketingUser> getAssignedTo() {
+        return Optional.ofNullable(assignedTo);
+    }
 }
