@@ -93,15 +93,6 @@ public class ComplaintTicketService {
     }
 
 
-//    public void cancelById(Long id) {
-//        logger.debug("delete complaint ticket by id accessed in service");
-//        complaintTicketRepository
-//                .findById(id).orElseThrow(
-//                        () -> new TicketNotFoundException("No complaint ticket with id " + id)
-//                );
-//        complaintTicketRepository.deleteById(id);
-//    }
-
     @Transactional
     public ComplaintTicket assignTicket(Long ticketId, TicketingUserDto assignedToDto, Authentication authentication) {
         logger.debug("assignTicket complaint ticket accessed in service");
@@ -233,6 +224,10 @@ public class ComplaintTicketService {
                 .filter(ct -> ct.getAssignedTo().isPresent()
                         && ct.getAssignedTo().get().getUserId().equals(currentUser.getUserId()))
                 .toList();
+
+    }
+
+    public ComplaintTicket cancelTicket(Long ticketId, Authentication authentication) {
 
     }
 }

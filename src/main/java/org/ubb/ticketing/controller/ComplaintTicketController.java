@@ -152,7 +152,29 @@ public class ComplaintTicketController {
         }
     }
 
-    //TODO: cancelTicket
+
+    @PutMapping("/cancel/{ticketId}")
+    public ResponseEntity<ApiResponse<TicketDto>> cancelTicket(@PathVariable Long ticketId, Authentication authentication) {
+        logger.info("cancelTicket accessed in controller");
+        try {
+            var canceledTicket = complaintTicketService.cancelTicket(ticketId, authentication);
+            logger.info("ticket with id {} cancelled", ticketId);
+            var canceledTicketDto = modelMapper.map(canceledTicket, TicketDto.class);
+            return ResponseEntity.ok(new ApiResponse<>("ticket canceled", canceledTicketDto));
+        } catch (TicketingSystemException e) {
+            logger.error("cancelTicket internal error", e);
+            return ResponseEntity.badRequest().body(new ApiResponse<>(e.getMessage(), null));
+        } catch (AuthenticationException e) {
+            logger.error("cancelTicket no authentication", e);
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>("no authentication", null));
+        } catch (Exception e) {
+            logger.error("cancelTicket internal server error", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // TODO: add comment to the ticket
 
 
 }
