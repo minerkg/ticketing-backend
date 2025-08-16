@@ -8,6 +8,8 @@ import org.ubb.ticketing.domain.user.TicketingUser;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @MappedSuperclass
@@ -58,6 +60,9 @@ public abstract class Ticket implements Serializable {
     @ManyToOne(cascade = CascadeType.ALL)
     private TicketingUser cancelledBy;
     private LocalDateTime cancelledWhen;
+
+    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> comments;
 
 
     public Optional<TicketingUser> getAssignedTo() {

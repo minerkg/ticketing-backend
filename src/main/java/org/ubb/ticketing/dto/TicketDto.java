@@ -4,13 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.ubb.ticketing.domain.SolutionType;
-import org.ubb.ticketing.domain.TicketElement;
-import org.ubb.ticketing.domain.TicketStatus;
-import org.ubb.ticketing.domain.TicketType;
+import org.ubb.ticketing.domain.*;
 import org.ubb.ticketing.domain.user.TicketingUser;
 
 import java.time.LocalDateTime;
+import java.util.List;
+
 @Builder
 @Data
 @AllArgsConstructor
@@ -33,6 +32,7 @@ public class TicketDto {
     private LocalDateTime closedWhen;
     private TicketingUserDto cancelledBy;
     private LocalDateTime cancelledWhen;
+    private List<CommentDto> commentList;
 
 
 }
