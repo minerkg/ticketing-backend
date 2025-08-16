@@ -64,7 +64,7 @@ public class AddInitialData implements CommandLineRunner {
 
         complaintTicketService.createTicket(
                 TicketCreationRequest.builder()
-                        .ticketElement(ticketElementService.getAllTicketElements().stream().findFirst().get())
+                        .ticketElementName(ticketElementService.getAllTicketElements().stream().findFirst().get().getName())
                         .description("Test ticket")
                         .build(),
                 authentication);

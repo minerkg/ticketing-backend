@@ -23,6 +23,7 @@ import org.ubb.ticketing.exception.TicketNotFoundException;
 import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.exception.UserNotFoundException;
 import org.ubb.ticketing.repository.ComplaintTicketRepository;
+import org.ubb.ticketing.repository.TicketElementRepository;
 import org.ubb.ticketing.repository.TicketingUserRepository;
 
 import java.time.LocalDateTime;
@@ -38,12 +39,16 @@ public class ComplaintTicketService {
     private final ComplaintTicketValidator complaintTicketValidator;
     private final Logger logger = LoggerFactory.getLogger(ComplaintTicketService.class);
     private final TicketingUserRepository ticketingUserRepository;
+    private final TicketElementRepository ticketElementRepository;
 
     public ComplaintTicketService(ComplaintTicketRepository complaintTicketRepository,
-                                  ComplaintTicketValidator complaintTicketValidator, TicketingUserRepository ticketingUserRepository) {
+                                  ComplaintTicketValidator complaintTicketValidator,
+                                  TicketingUserRepository ticketingUserRepository,
+                                  TicketElementRepository ticketElementRepository) {
         this.complaintTicketRepository = complaintTicketRepository;
         this.complaintTicketValidator = complaintTicketValidator;
         this.ticketingUserRepository = ticketingUserRepository;
+        this.ticketElementRepository = ticketElementRepository;
     }
 
 
@@ -76,7 +81,8 @@ public class ComplaintTicketService {
         if (errors.hasErrors()) {
             throw new ValidationException("Complaint Ticket validation failed: " + errors.getAllErrors());
         }
-        complaintTicket.setTicketElement(ticketRequest.getTicketElement());
+        complaintTicket.setTicketElement(ticketElementRepository
+                .findByName(ticketRequest.getTicketElementName()).getFirst());
         complaintTicket.setDescription(ticketRequest.getDescription());
 
 
