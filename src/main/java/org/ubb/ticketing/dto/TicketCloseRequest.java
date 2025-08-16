@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.ubb.ticketing.domain.SolutionType;
 
 import java.io.Serializable;
 
@@ -14,7 +13,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 public class TicketCloseRequest implements Serializable {
 
-    private SolutionType solutionType;
+    private String solutionTypeName;
 
     private String solutionDescription;
 }

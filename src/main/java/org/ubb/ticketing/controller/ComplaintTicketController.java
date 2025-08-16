@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
-import org.ubb.ticketing.domain.complaint.ComplaintTicket;
 import org.ubb.ticketing.dto.*;
 import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.service.ComplaintTicketService;
@@ -108,14 +107,14 @@ public class ComplaintTicketController {
 
     }
 
-    @PutMapping("/close/{id}")
-    public ResponseEntity<ApiResponse<TicketDto>> closeTicket(@PathVariable Long id,
+    @PutMapping("/close/{ticketId}")
+    public ResponseEntity<ApiResponse<TicketDto>> closeTicket(@PathVariable Long ticketId,
                                                                     @RequestBody TicketCloseRequest ticketCloseRequest,
                                                                     Authentication authentication) {
         logger.info("closeTicket accessed in controller");
         try {
-            var closedTicket = complaintTicketService.closeTicket(id, authentication, ticketCloseRequest);
-            logger.info("ticket with id {} closed", id);
+            var closedTicket = complaintTicketService.closeTicket(ticketId, authentication, ticketCloseRequest);
+            logger.info("ticket with id {} closed", ticketId);
             var closedTicketDto = modelMapper.map(closedTicket, TicketDto.class);
             return ResponseEntity.ok(new ApiResponse<>("ticket closed", closedTicketDto));
         } catch (TicketingSystemException e) {

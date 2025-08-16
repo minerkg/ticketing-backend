@@ -23,6 +23,7 @@ import org.ubb.ticketing.exception.TicketNotFoundException;
 import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.exception.UserNotFoundException;
 import org.ubb.ticketing.repository.ComplaintTicketRepository;
+import org.ubb.ticketing.repository.SolutionTypeRepository;
 import org.ubb.ticketing.repository.TicketElementRepository;
 import org.ubb.ticketing.repository.TicketingUserRepository;
 
@@ -40,15 +41,17 @@ public class ComplaintTicketService {
     private final Logger logger = LoggerFactory.getLogger(ComplaintTicketService.class);
     private final TicketingUserRepository ticketingUserRepository;
     private final TicketElementRepository ticketElementRepository;
+    private final SolutionTypeRepository solutionTypeRepository;
 
     public ComplaintTicketService(ComplaintTicketRepository complaintTicketRepository,
                                   ComplaintTicketValidator complaintTicketValidator,
                                   TicketingUserRepository ticketingUserRepository,
-                                  TicketElementRepository ticketElementRepository) {
+                                  TicketElementRepository ticketElementRepository, SolutionTypeRepository solutionTypeRepository) {
         this.complaintTicketRepository = complaintTicketRepository;
         this.complaintTicketValidator = complaintTicketValidator;
         this.ticketingUserRepository = ticketingUserRepository;
         this.ticketElementRepository = ticketElementRepository;
+        this.solutionTypeRepository = solutionTypeRepository;
     }
 
 
@@ -169,6 +172,10 @@ public class ComplaintTicketService {
         logger.debug("closeTicket complaint ticket accessed in service");
         var currentUser = (TicketingUser) authentication.getPrincipal();
 
+        var currentUserFromRepo = ticketingUserRepository
+                .findByUsername(currentUser.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("No user with name " + currentUser.getUsername()));
+
         var ticket = complaintTicketRepository
                 .findById(id).orElseThrow(
                         () -> new TicketNotFoundException("No complaint ticket with id " + id)
@@ -178,13 +185,19 @@ public class ComplaintTicketService {
             throw new TicketingSystemException("You are not allowed to work on this ticket because it is already closed. ");
         }
 
-        if (!ticket.getAssignedTo().equals(currentUser))
-            throw new TicketingSystemException("You are not allowed to close this ticket because you are not " +
-                    "assigned to it. ");
+        ticket.getAssignedTo().orElseThrow(() -> new TicketingSystemException("The ticket is not assigned to anyone."));
+
+        ticket.getAssignedTo().ifPresent(user -> {
+            if (!user.getUserId().equals(currentUserFromRepo.getUserId())) {
+                throw new TicketingSystemException("You are not allowed to close this ticket because you are not " +
+                        "assigned to it. ");
+            }
+        });
+
 
         ticket.setSolutionDescription(ticketCloseRequest.getSolutionDescription());
-        ticket.setSolutionType(ticketCloseRequest.getSolutionType());
-        ticket.setClosedBy(currentUser);
+        ticket.setSolutionType(solutionTypeRepository.findByName(ticketCloseRequest.getSolutionTypeName()).getFirst());
+        ticket.setClosedBy(currentUserFromRepo);
         ticket.setClosedWhen(LocalDateTime.now());
 
         //TODO: send notification about the closeing event
