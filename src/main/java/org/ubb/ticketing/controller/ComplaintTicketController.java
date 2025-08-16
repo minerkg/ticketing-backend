@@ -130,13 +130,13 @@ public class ComplaintTicketController {
         }
     }
 
-    @PutMapping("update/{id}")
-    public ResponseEntity<ApiResponse<TicketDto>> workingOnTicket(@PathVariable Long id,
+    @PutMapping("update/{ticketId}")
+    public ResponseEntity<ApiResponse<TicketDto>> workingOnTicket(@PathVariable Long ticketId,
                                                                         @RequestBody ComplaintTicketRequest complaintTicketRequest,
                                                                         Authentication authentication) {
         try {
             logger.info("workingOnTicket method accessed in controller");
-            var updatedTicket = complaintTicketService.editTicket(id, complaintTicketRequest, authentication);
+            var updatedTicket = complaintTicketService.editTicket(ticketId, complaintTicketRequest, authentication);
             var updatedTicketDto = modelMapper.map(updatedTicket, TicketDto.class);
             return ResponseEntity.ok(new ApiResponse<>("ticket edited", updatedTicketDto));
         } catch (TicketingSystemException e) {

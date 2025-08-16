@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.ubb.ticketing.domain.TicketElement;
 
 import java.io.Serializable;
 
@@ -15,7 +14,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 public class ComplaintTicketRequest implements Serializable {
 
-    private TicketElement ticketElement;
+    private String ticketElementName;
     private String description;
 
 

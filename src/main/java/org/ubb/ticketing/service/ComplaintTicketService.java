@@ -153,13 +153,30 @@ public class ComplaintTicketService {
         }
 
         //check if the current user is the assigned user otherwise notify the user
-        if (!ticket.getAssignedTo().equals(authentication.getPrincipal())) {
-            throw new TicketingSystemException("You are not allowed to work on this ticket because " +
-                    "you are not assigned to it. ");
+        var user = (TicketingUser) authentication.getPrincipal();
+        var currentUser = ticketingUserRepository.findByUsername(user.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("No user with name " + user.getUsername()));
+
+
+        ticket.getAssignedTo().orElseThrow(() -> new TicketingSystemException("The ticket is not assigned to anyone."));
+        ticket.getAssignedTo().ifPresent(ticketUser -> {
+            if (!ticketUser.getUserId().equals(currentUser.getUserId())) {
+                throw new TicketingSystemException("You are not allowed to close this ticket because you are not " +
+                        "assigned to it. ");
+            }
+        });
+
+        if (updatedComplaintTicketRequest.getTicketElementName() != null
+                && !updatedComplaintTicketRequest.getTicketElementName().isBlank()) {
+            ticket.setTicketElement(ticketElementRepository
+                    .findByName(updatedComplaintTicketRequest.getTicketElementName()).getFirst());
         }
 
-        ticket.setTicketElement(updatedComplaintTicketRequest.getTicketElement());
-        ticket.setDescription(updatedComplaintTicketRequest.getDescription());
+        if (updatedComplaintTicketRequest.getDescription() != null
+                && !updatedComplaintTicketRequest.getDescription().isBlank()) {
+            ticket.setDescription(updatedComplaintTicketRequest.getDescription());
+        }
+
         ticket.setTicketStatus(TicketStatus.IN_PROGRESS);
 
         return ticket;
