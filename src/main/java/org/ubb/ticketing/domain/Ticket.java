@@ -61,7 +61,7 @@ public abstract class Ticket implements Serializable {
     private TicketingUser cancelledBy;
     private LocalDateTime cancelledWhen;
 
-    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL)
     private List<Comment> comments;
 
 

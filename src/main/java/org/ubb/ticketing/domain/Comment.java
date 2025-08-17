@@ -6,6 +6,7 @@ import lombok.*;
 import org.ubb.ticketing.domain.complaint.ComplaintTicket;
 import org.ubb.ticketing.domain.user.TicketingUser;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
@@ -14,7 +15,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Comment {
+public class Comment implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

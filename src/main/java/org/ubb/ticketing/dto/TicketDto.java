@@ -32,7 +32,7 @@ public class TicketDto {
     private LocalDateTime closedWhen;
     private TicketingUserDto cancelledBy;
     private LocalDateTime cancelledWhen;
-    private List<CommentDto> commentList;
+    private List<CommentDto> comments;
 
 
 }

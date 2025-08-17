@@ -43,16 +43,20 @@ public class CommentService {
                 .findByUsername(currentUser.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("No user with name " + currentUser.getUsername()));
 
-        List<Comment> comments = ticket.getComments();
-        comments.add(
-                Comment.builder()
-                        .commenter(currentUserFromRepo)
-                        .commentText(commentText)
-                        .commentedWhen(LocalDateTime.now())
-                        .build());
-        ticket.setComments(comments);
+        var newComment = Comment.builder()
+                .commenter(currentUserFromRepo)
+                .commentText(commentText)
+                .commentedWhen(LocalDateTime.now())
+                .build();
+        if (ticket.getComments() == null) {
+            ticket.setComments(List.of(newComment));
+        } else {
+            List<Comment> comments = ticket.getComments();
+            comments.add(newComment);
+            ticket.setComments(comments);
+        }
+        newComment.setTicket(ticket);
         logger.debug("Comment added to ticket {}", ticket.getTicketId());
-
         return ticket;
     }
 }
