@@ -66,6 +66,9 @@ public class CommentService {
         }
         newComment.setTicket(ticket);
         logger.debug("Comment added to ticket {}", ticket.getTicketId());
+
+        //TODO : notify assigned user and createdBy user
+
         return ticket;
     }
 }

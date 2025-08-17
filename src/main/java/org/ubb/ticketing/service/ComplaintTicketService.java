@@ -97,7 +97,7 @@ public class ComplaintTicketService {
     @Transactional
     public ComplaintTicket assignTicket(Long ticketId, TicketingUserDto assignedToDto, Authentication authentication) {
         logger.debug("assignTicket complaint ticket accessed in service");
-        var currentUser = (TicketingUser) authentication.getPrincipal();
+
 
         var ticket = complaintTicketRepository
                 .findById(ticketId).orElseThrow(
@@ -112,6 +112,7 @@ public class ComplaintTicketService {
                 .orElseThrow(() -> new UserNotFoundException("No user with name " + assignedToDto.getUsername()));
 
         //check if the current user is the user who wants to assign to himself the ticket with any role or has a supervisor role
+        var currentUser = (TicketingUser) authentication.getPrincipal();
         if (!currentUser.getUserId().equals(assignedToUser.getUserId()) &&
                 currentUser.getAuthorities().stream()
                         .noneMatch(a -> a.getAuthority().equals("ROLE_SUPERVISOR")
@@ -145,14 +146,14 @@ public class ComplaintTicketService {
         }
 
         //check if the current user is the assigned user otherwise notify the user
-        var user = (TicketingUser) authentication.getPrincipal();
-        var currentUser = ticketingUserRepository.findByUsername(user.getUsername())
-                .orElseThrow(() -> new UserNotFoundException("No user with name " + user.getUsername()));
+        var currentUser = (TicketingUser) authentication.getPrincipal();
+        var persistedCurrentUser = ticketingUserRepository.findByUsername(currentUser.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("No user with name " + currentUser.getUsername()));
 
 
         ticket.getAssignedTo().orElseThrow(() -> new TicketingSystemException("The ticket is not assigned to anyone."));
         ticket.getAssignedTo().ifPresent(ticketUser -> {
-            if (!ticketUser.getUserId().equals(currentUser.getUserId())) {
+            if (!ticketUser.getUserId().equals(persistedCurrentUser.getUserId())) {
                 throw new TicketingSystemException("You are not allowed to close this ticket because you are not " +
                         "assigned to it. ");
             }
@@ -181,7 +182,7 @@ public class ComplaintTicketService {
         logger.debug("closeTicket complaint ticket accessed in service");
         var currentUser = (TicketingUser) authentication.getPrincipal();
 
-        var currentUserFromRepo = ticketingUserRepository
+        var persistedCurrentUser = ticketingUserRepository
                 .findByUsername(currentUser.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("No user with name " + currentUser.getUsername()));
 
@@ -197,7 +198,7 @@ public class ComplaintTicketService {
         ticket.getAssignedTo().orElseThrow(() -> new TicketingSystemException("The ticket is not assigned to anyone."));
 
         ticket.getAssignedTo().ifPresent(user -> {
-            if (!user.getUserId().equals(currentUserFromRepo.getUserId())) {
+            if (!user.getUserId().equals(persistedCurrentUser.getUserId())) {
                 throw new TicketingSystemException("You are not allowed to close this ticket because you are not " +
                         "assigned to it. ");
             }
@@ -206,7 +207,7 @@ public class ComplaintTicketService {
 
         ticket.setSolutionDescription(ticketCloseRequest.getSolutionDescription());
         ticket.setSolutionType(solutionTypeRepository.findByName(ticketCloseRequest.getSolutionTypeName()).getFirst());
-        ticket.setClosedBy(currentUserFromRepo);
+        ticket.setClosedBy(persistedCurrentUser);
         ticket.setClosedWhen(LocalDateTime.now());
 
         //TODO: send notification about the closeing event
@@ -237,22 +238,22 @@ public class ComplaintTicketService {
                 .findById(ticketId).orElseThrow(
                         () -> new TicketNotFoundException("No complaint ticket with id " + ticketId)
                 );
-        var currentUserFromRepo = ticketingUserRepository
+        var persistedCurrentUser = ticketingUserRepository
                 .findByUsername(currentUser.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("No user with name " + currentUser.getUsername()));
 
 
         //Only the user who created the ticket can cancel it or the admin or supervisor
-        if (currentUserFromRepo.getAuthorities().stream()
+        if (persistedCurrentUser.getAuthorities().stream()
                 .noneMatch(a -> a.getAuthority().equals("ROLE_SUPERVISOR")
                         || a.getAuthority().equals("ROLE_ADMIN"))
-                && !ticket.getCreatedBy().getUserId().equals(currentUserFromRepo.getUserId())) {
+                && !ticket.getCreatedBy().getUserId().equals(persistedCurrentUser.getUserId())) {
             throw new TicketingSystemException("You are not allowed to cancel this ticket because you are" +
                     " not admin/supervisor or the creator of the ticket. ");
         }
 
         ticket.setTicketStatus(TicketStatus.CANCELLED);
-        ticket.setCancelledBy(currentUserFromRepo);
+        ticket.setCancelledBy(persistedCurrentUser);
         ticket.setCancelledWhen(LocalDateTime.now());
 
         return ticket;
