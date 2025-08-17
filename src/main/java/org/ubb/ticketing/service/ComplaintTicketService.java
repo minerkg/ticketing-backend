@@ -258,29 +258,5 @@ public class ComplaintTicketService {
         return ticket;
     }
 
-    @Transactional
-    public ComplaintTicket addComment(Long ticketId, String commentText, Authentication authentication) {
-        logger.debug("addComment complaint ticket accessed in service");
-        var currentUser = (TicketingUser) authentication.getPrincipal();
-        var ticket = complaintTicketRepository
-                .findById(ticketId).orElseThrow(
-                        () -> new TicketNotFoundException("No complaint ticket with id " + ticketId)
-                );
-        var currentUserFromRepo = ticketingUserRepository
-                .findByUsername(currentUser.getUsername())
-                .orElseThrow(() -> new UserNotFoundException("No user with name " + currentUser.getUsername()));
-
-        List<Comment> comments = ticket.getComments();
-        comments.add(
-                Comment.builder()
-                        .commenter(currentUserFromRepo)
-                        .commentText(commentText)
-                        .commentedWhen(LocalDateTime.now())
-                        .build());
-        ticket.setComments(comments);
-        logger.debug("Comment added to ticket {}", ticket.getTicketId());
-
-        return ticket;
-    }
 
 }

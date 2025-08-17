@@ -174,7 +174,6 @@ public class ComplaintTicketController {
         }
     }
 
-    // TODO: add comment to the ticket
 
 
 
