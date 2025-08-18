@@ -24,11 +24,11 @@ public class EmailNotificationService implements NotificationService {
     private final JavaMailSender javaMailSender;
     private Dotenv dotenv;
     private final String EMAIL_FROM = dotenv.get("EMAIL_FROM");
-    private Logger logger = LoggerFactory.getLogger(EmailNotificationService.class);
+    private final Logger logger = LoggerFactory.getLogger(EmailNotificationService.class);
 
     public EmailNotificationService(JavaMailSender javaMailSender) {
         this.javaMailSender = javaMailSender;
-        this.dotenv = dotenv = Dotenv.load();
+        this.dotenv = Dotenv.load();
     }
 
     @Async
@@ -38,7 +38,6 @@ public class EmailNotificationService implements NotificationService {
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("date-time", ticket.getCreatedWhen().toString());
         placeholders.put("text", "Ticket created with id: " + ticket.getTicketId());
-
         try {
             String body = loadEmailTemplate("src/main/resources/email-templates/ticket-created.html", placeholders);
             MimeMessage message = javaMailSender.createMimeMessage();
@@ -56,6 +55,7 @@ public class EmailNotificationService implements NotificationService {
 
     }
 
+    @Async
     @Override
     public void notifyTicketAssigned(Ticket ticket) {
         logger.debug("notifyTicketAssigned method accessed");
@@ -83,6 +83,7 @@ public class EmailNotificationService implements NotificationService {
 
     }
 
+    @Async
     @Override
     public void notifyTicketClosed(Ticket ticket) {
         logger.debug("notifyTicketClosed method accessed");
