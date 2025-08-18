@@ -6,6 +6,7 @@ import org.ubb.ticketing.domain.complaint.ComplaintTicket;
 import org.ubb.ticketing.domain.user.TicketingUser;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 
 @Component
 public class TicketFactory {
@@ -19,6 +20,7 @@ public class TicketFactory {
                 ct.setSlaHours(720);
                 ct.setTicketStatus(TicketStatus.NEW);
                 ct.setCreatedBy(createdBy);
+                ct.setComments(new ArrayList<>());
                 yield ct;
             }
 //                case INCIDENT -> new IncidentTicket();
