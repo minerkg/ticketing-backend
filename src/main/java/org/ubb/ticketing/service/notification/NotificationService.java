@@ -5,9 +5,10 @@ import org.ubb.ticketing.domain.Ticket;
 public interface NotificationService {
 
 
-        void notifyTicketCreated(String destination, String subject, String text, Ticket ticket);
+        void notifyTicketCreated(Ticket ticket);
+        void notifyTicketAssigned(Ticket ticket);
+        void notifyTicketClosed(Ticket ticket);
 
-        void notifyTicketAssigned(String destination, String subject, String text, Ticket ticket);
 
 
 
