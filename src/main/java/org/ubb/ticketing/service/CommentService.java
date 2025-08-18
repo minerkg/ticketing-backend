@@ -71,4 +71,7 @@ public class CommentService {
 
         return ticket;
     }
+
+    //TODO: add system auto comments
+
 }
