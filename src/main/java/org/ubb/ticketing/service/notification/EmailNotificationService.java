@@ -22,13 +22,13 @@ import java.util.Map;
 public class EmailNotificationService implements NotificationService {
 
     private final JavaMailSender javaMailSender;
-    private Dotenv dotenv;
+    private final Dotenv dotenv = Dotenv.load();
     private final String EMAIL_FROM = dotenv.get("EMAIL_FROM");
     private final Logger logger = LoggerFactory.getLogger(EmailNotificationService.class);
 
     public EmailNotificationService(JavaMailSender javaMailSender) {
         this.javaMailSender = javaMailSender;
-        this.dotenv = Dotenv.load();
+
     }
 
     @Async
