@@ -44,7 +44,7 @@ public class EmailNotificationService implements NotificationService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
             message.setFrom(EMAIL_FROM);
-            helper.setTo("csiszer_rs@yahoo.com"); //TODO: to the customer
+            helper.setTo(ticket.getClient().getEmail());
             helper.setSubject("New ticket created");
             helper.setText(body, true);
             javaMailSender.send(message);
@@ -88,7 +88,7 @@ public class EmailNotificationService implements NotificationService {
     public void notifyTicketClosed(Ticket ticket) {
         logger.debug("notifyTicketClosed method accessed");
         Map<String, String> placeholders = new HashMap<>();
-        //placeholders.put("customer-name", ticket.getCustomer().getName()); //TODO: get cutomer's name
+        placeholders.put("customer-name", ticket.getClient().getFirstName() + " " + ticket.getClient().getLastName());
         placeholders.put("ticket-id", ticket.getTicketId().toString());
         placeholders.put("date-time", ticket.getClosedWhen().toString());
         placeholders.put("resolution", ticket.getSolutionDescription());
@@ -100,7 +100,7 @@ public class EmailNotificationService implements NotificationService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
             message.setFrom(EMAIL_FROM);
-            helper.setTo(""); //TODO: to the customer
+            helper.setTo(ticket.getClient().getEmail());
             helper.setSubject("Ticket assigned to you");
             helper.setText(body, true);
             javaMailSender.send(message);
