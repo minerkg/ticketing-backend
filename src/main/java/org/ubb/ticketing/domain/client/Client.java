@@ -30,7 +30,7 @@ public class Client implements Serializable {
 
     private String firstName;
     private String lastName;
-    @UniqueElements
+
     private String email;
     private String phoneNumber;
 

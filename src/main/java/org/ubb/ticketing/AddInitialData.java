@@ -5,6 +5,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+import org.ubb.ticketing.domain.client.Client;
 import org.ubb.ticketing.domain.user.UserRole;
 import org.ubb.ticketing.dto.TicketCreationRequest;
 import org.ubb.ticketing.dto.UserRegistrationRequest;
@@ -69,10 +70,18 @@ public class AddInitialData implements CommandLineRunner {
         solutionTypeService.createSolutionType("Compensation");
         solutionTypeService.createSolutionType("Information share");
 
+        Client client = Client.builder()
+                .firstName("Andreea")
+                .lastName("Pop")
+                .email("csiszer_rs@yahoo.com")
+                .phoneNumber("0748882012")
+                .build();
+
         complaintTicketService.createTicket(
                 TicketCreationRequest.builder()
                         .ticketElementName(ticketElementService.getAllTicketElements().stream().findFirst().get().getName())
                         .description("Test ticket")
+                        .client(client)
                         .build(),
                 authentication);
 
