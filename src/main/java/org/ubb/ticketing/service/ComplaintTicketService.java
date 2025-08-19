@@ -9,7 +9,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
-import org.ubb.ticketing.domain.Comment;
 import org.ubb.ticketing.domain.TicketFactory;
 import org.ubb.ticketing.domain.TicketStatus;
 import org.ubb.ticketing.domain.TicketType;
@@ -27,6 +26,7 @@ import org.ubb.ticketing.repository.ComplaintTicketRepository;
 import org.ubb.ticketing.repository.SolutionTypeRepository;
 import org.ubb.ticketing.repository.TicketElementRepository;
 import org.ubb.ticketing.repository.TicketingUserRepository;
+import org.ubb.ticketing.service.notification.NotificationService;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -43,16 +43,18 @@ public class ComplaintTicketService {
     private final TicketingUserRepository ticketingUserRepository;
     private final TicketElementRepository ticketElementRepository;
     private final SolutionTypeRepository solutionTypeRepository;
+    private final NotificationService notificationService;
 
     public ComplaintTicketService(ComplaintTicketRepository complaintTicketRepository,
                                   ComplaintTicketValidator complaintTicketValidator,
                                   TicketingUserRepository ticketingUserRepository,
-                                  TicketElementRepository ticketElementRepository, SolutionTypeRepository solutionTypeRepository) {
+                                  TicketElementRepository ticketElementRepository, SolutionTypeRepository solutionTypeRepository, NotificationService notificationService) {
         this.complaintTicketRepository = complaintTicketRepository;
         this.complaintTicketValidator = complaintTicketValidator;
         this.ticketingUserRepository = ticketingUserRepository;
         this.ticketElementRepository = ticketElementRepository;
         this.solutionTypeRepository = solutionTypeRepository;
+        this.notificationService = notificationService;
     }
 
 
@@ -88,9 +90,14 @@ public class ComplaintTicketService {
         complaintTicket.setTicketElement(ticketElementRepository
                 .findByName(ticketRequest.getTicketElementName()).getFirst());
         complaintTicket.setDescription(ticketRequest.getDescription());
+        complaintTicket.setClient(ticketRequest.getClient());
 
+        var persistedTicket = complaintTicketRepository.save(complaintTicket);
+        logger.debug("Complaint ticket created successfully: {}", persistedTicket);
 
-        return complaintTicketRepository.save(complaintTicket);
+        notificationService.notifyTicketCreated(persistedTicket);
+
+        return persistedTicket;
     }
 
 
@@ -127,7 +134,7 @@ public class ComplaintTicketService {
         }
         ticket.setAssignedWhen(LocalDateTime.now());
 
-        //TODO: notify user about the new assigned ticket on hime/her
+        notificationService.notifyTicketAssigned(ticket);
 
         return ticket;
     }
@@ -172,6 +179,8 @@ public class ComplaintTicketService {
 
         ticket.setTicketStatus(TicketStatus.IN_PROGRESS);
 
+        //TODO: send notification about the edit event<??
+
         return ticket;
     }
 
@@ -210,7 +219,7 @@ public class ComplaintTicketService {
         ticket.setClosedBy(persistedCurrentUser);
         ticket.setClosedWhen(LocalDateTime.now());
 
-        //TODO: send notification about the closeing event
+        notificationService.notifyTicketClosed(ticket);
 
         ticket.setTicketStatus(TicketStatus.CLOSED);
 
