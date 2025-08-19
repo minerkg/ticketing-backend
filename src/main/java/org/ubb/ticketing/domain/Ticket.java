@@ -4,6 +4,7 @@ package org.ubb.ticketing.domain;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.ubb.ticketing.domain.client.Client;
 import org.ubb.ticketing.domain.user.TicketingUser;
 
 import java.io.Serializable;
@@ -25,6 +26,8 @@ public abstract class Ticket implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long ticketId;
 
+    @ManyToOne(cascade = CascadeType.ALL)
+    private Client client;
 
     @Enumerated(EnumType.STRING)
     private TicketType ticketType;
