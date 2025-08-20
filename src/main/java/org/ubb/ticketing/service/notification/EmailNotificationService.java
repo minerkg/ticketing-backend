@@ -15,12 +15,15 @@ import org.ubb.ticketing.exception.NotificationException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class EmailNotificationService implements NotificationService {
 
+    private static final DateTimeFormatter EMAIL_DATE_FORMATTER =
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private final JavaMailSender javaMailSender;
     private final Dotenv dotenv = Dotenv.load();
     private final String EMAIL_FROM = dotenv.get("EMAIL_FROM");
@@ -36,7 +39,8 @@ public class EmailNotificationService implements NotificationService {
     public void notifyTicketCreated(Ticket ticket) {
         logger.debug("notifyTicketCreated method accessed");
         Map<String, String> placeholders = new HashMap<>();
-        placeholders.put("date-time", ticket.getCreatedWhen().toString());
+        placeholders.put("customer-name", ticket.getClient().getFirstName() + " " + ticket.getClient().getLastName());
+        placeholders.put("date-time", ticket.getCreatedWhen().format(EMAIL_DATE_FORMATTER));
         placeholders.put("text", "Ticket created with id: " + ticket.getTicketId());
         try {
             String body = loadEmailTemplate("src/main/resources/email-templates/ticket-created.html", placeholders);
@@ -44,7 +48,7 @@ public class EmailNotificationService implements NotificationService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
             message.setFrom(EMAIL_FROM);
-            helper.setTo("csiszer_rs@yahoo.com"); //TODO: to the customer
+            helper.setTo(ticket.getClient().getEmail());
             helper.setSubject("New ticket created");
             helper.setText(body, true);
             javaMailSender.send(message);
@@ -62,7 +66,7 @@ public class EmailNotificationService implements NotificationService {
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("agent-name", ticket.getAssignedTo().get().getFirstName());
         placeholders.put("ticket-id", ticket.getTicketId().toString());
-        placeholders.put("date-time", ticket.getCreatedWhen().toString());
+        placeholders.put("date-time", ticket.getCreatedWhen().format(EMAIL_DATE_FORMATTER));
         placeholders.put("ticket-summary", ticket.getDescription());
 
 
@@ -88,9 +92,9 @@ public class EmailNotificationService implements NotificationService {
     public void notifyTicketClosed(Ticket ticket) {
         logger.debug("notifyTicketClosed method accessed");
         Map<String, String> placeholders = new HashMap<>();
-        //placeholders.put("customer-name", ticket.getCustomer().getName()); //TODO: get cutomer's name
+        placeholders.put("customer-name", ticket.getClient().getFirstName() + " " + ticket.getClient().getLastName());
         placeholders.put("ticket-id", ticket.getTicketId().toString());
-        placeholders.put("date-time", ticket.getClosedWhen().toString());
+        placeholders.put("date-time", ticket.getClosedWhen().format(EMAIL_DATE_FORMATTER));
         placeholders.put("resolution", ticket.getSolutionDescription());
 
 
@@ -100,7 +104,7 @@ public class EmailNotificationService implements NotificationService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
             message.setFrom(EMAIL_FROM);
-            helper.setTo(""); //TODO: to the customer
+            helper.setTo(ticket.getClient().getEmail());
             helper.setSubject("Ticket assigned to you");
             helper.setText(body, true);
             javaMailSender.send(message);
@@ -114,7 +118,7 @@ public class EmailNotificationService implements NotificationService {
     private String loadEmailTemplate(String path, Map<String, String> placeholders) throws IOException {
         String template = Files.readString(Paths.get(path));
         for (Map.Entry<String, String> entry : placeholders.entrySet()) {
-            template = template.replace("{{" + entry.getKey() + "}}", entry.getValue());
+            template = template.replace("${" + entry.getKey() + "}", entry.getValue());
         }
         return template;
     }
