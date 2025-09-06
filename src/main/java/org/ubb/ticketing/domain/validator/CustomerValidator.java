@@ -30,7 +30,7 @@ public class CustomerValidator implements Validator {
         }
 
         if (customerRepository.findByPhoneNumber((request.getPhoneNumber())).isPresent()) {
-            errors.rejectValue("phone number", "duplicate", "Phone number is already taken");
+            errors.rejectValue("phoneNumber", "duplicate", "Phone number is already taken");
         }
     }
 }

@@ -1,6 +1,7 @@
 package org.ubb.ticketing.controller;
 
 
+import jakarta.validation.ValidationException;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,6 +90,10 @@ public class CustomerController {
             return ResponseEntity.ok(new ApiResponse<>(
                     "customer created",
                     modelMapper.map(savedCustomer, CustomerDto.class)));
+        } catch (ValidationException e) {
+            logger.error("customer validation problem", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>(e.getMessage(), null));
         } catch (TicketingSystemException e) {
             logger.error("create new customer internal error", e);
             return ResponseEntity.badRequest()
