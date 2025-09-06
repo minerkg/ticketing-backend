@@ -1,4 +1,4 @@
-package org.ubb.ticketing.domain.client;
+package org.ubb.ticketing.domain.customer;
 
 
 import jakarta.persistence.Entity;
@@ -7,8 +7,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
-import org.hibernate.validator.constraints.UniqueElements;
-import org.ubb.ticketing.domain.Ticket;
 import org.ubb.ticketing.domain.complaint.ComplaintTicket;
 
 import java.io.Serializable;
@@ -21,12 +19,12 @@ import java.util.UUID;
 @Builder
 @Setter
 @Getter
-public class Client implements Serializable {
+public class Customer implements Serializable {
 
     @Id
     @GeneratedValue
     @UuidGenerator
-    private UUID userId;
+    private UUID customerId;
 
     private String firstName;
     private String lastName;
@@ -34,7 +32,7 @@ public class Client implements Serializable {
     private String email;
     private String phoneNumber;
 
-    @OneToMany(mappedBy = "client")
+    @OneToMany(mappedBy = "customer")
     private List<ComplaintTicket> tickets;
 
 }

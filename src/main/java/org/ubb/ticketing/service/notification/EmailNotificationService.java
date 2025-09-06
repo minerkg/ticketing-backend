@@ -39,7 +39,7 @@ public class EmailNotificationService implements NotificationService {
     public void notifyTicketCreated(Ticket ticket) {
         logger.debug("notifyTicketCreated method accessed");
         Map<String, String> placeholders = new HashMap<>();
-        placeholders.put("customer-name", ticket.getClient().getFirstName() + " " + ticket.getClient().getLastName());
+        placeholders.put("customer-name", ticket.getCustomer().getFirstName() + " " + ticket.getCustomer().getLastName());
         placeholders.put("date-time", ticket.getCreatedWhen().format(EMAIL_DATE_FORMATTER));
         placeholders.put("text", "Ticket created with id: " + ticket.getTicketId());
         try {
@@ -48,7 +48,7 @@ public class EmailNotificationService implements NotificationService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
             message.setFrom(EMAIL_FROM);
-            helper.setTo(ticket.getClient().getEmail());
+            helper.setTo(ticket.getCustomer().getEmail());
             helper.setSubject("New ticket created");
             helper.setText(body, true);
             javaMailSender.send(message);
@@ -92,7 +92,7 @@ public class EmailNotificationService implements NotificationService {
     public void notifyTicketClosed(Ticket ticket) {
         logger.debug("notifyTicketClosed method accessed");
         Map<String, String> placeholders = new HashMap<>();
-        placeholders.put("customer-name", ticket.getClient().getFirstName() + " " + ticket.getClient().getLastName());
+        placeholders.put("customer-name", ticket.getCustomer().getFirstName() + " " + ticket.getCustomer().getLastName());
         placeholders.put("ticket-id", ticket.getTicketId().toString());
         placeholders.put("date-time", ticket.getClosedWhen().format(EMAIL_DATE_FORMATTER));
         placeholders.put("resolution", ticket.getSolutionDescription());
@@ -104,7 +104,7 @@ public class EmailNotificationService implements NotificationService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
             message.setFrom(EMAIL_FROM);
-            helper.setTo(ticket.getClient().getEmail());
+            helper.setTo(ticket.getCustomer().getEmail());
             helper.setSubject("Ticket assigned to you");
             helper.setText(body, true);
             javaMailSender.send(message);

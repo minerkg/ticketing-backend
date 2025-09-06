@@ -90,7 +90,7 @@ public class ComplaintTicketService {
         complaintTicket.setTicketElement(ticketElementRepository
                 .findByName(ticketRequest.getTicketElementName()).getFirst());
         complaintTicket.setDescription(ticketRequest.getDescription());
-        complaintTicket.setClient(ticketRequest.getClient());
+        complaintTicket.setCustomer(ticketRequest.getCustomer());
 
         var persistedTicket = complaintTicketRepository.save(complaintTicket);
         logger.debug("Complaint ticket created successfully: {}", persistedTicket);

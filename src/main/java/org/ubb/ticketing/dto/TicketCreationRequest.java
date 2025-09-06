@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.ubb.ticketing.domain.TicketStatus;
 import org.ubb.ticketing.domain.TicketType;
-import org.ubb.ticketing.domain.client.Client;
+import org.ubb.ticketing.domain.customer.Customer;
 
 import java.io.Serializable;
 
@@ -17,7 +17,7 @@ import java.io.Serializable;
 public class TicketCreationRequest implements Serializable {
 
 
-    private Client client;
+    private Customer customer;
     private TicketType ticketType;
     private String ticketElementName;
     private String description;
