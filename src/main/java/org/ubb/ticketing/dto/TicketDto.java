@@ -18,6 +18,7 @@ public class TicketDto {
 
     private Long ticketId;
     private TicketType ticketType;
+    private CustomerDto customer;
     private TicketElement ticketElement;
     private LocalDateTime createdWhen;
     private TicketingUserDto createdBy;
