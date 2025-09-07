@@ -11,6 +11,7 @@ import org.ubb.ticketing.dto.TicketCreationRequest;
 import org.ubb.ticketing.dto.UserRegistrationRequest;
 import org.ubb.ticketing.repository.TicketingUserRepository;
 import org.ubb.ticketing.service.ComplaintTicketService;
+import org.ubb.ticketing.service.CustomerService;
 import org.ubb.ticketing.service.type.SolutionTypeService;
 import org.ubb.ticketing.service.type.TicketElementService;
 import org.ubb.ticketing.service.user.TicketingUserService;
@@ -25,14 +26,16 @@ public class AddInitialData implements CommandLineRunner {
     private final TicketingUserRepository ticketingUserRepository;
     private final TicketElementService ticketElementService;
     private final SolutionTypeService solutionTypeService;
+    private final CustomerService customerService;
 
-    public AddInitialData(ComplaintTicketService complaintTicketService, TicketingUserService ticketingUserService, TicketingUserRepository ticketingUserRepository, TicketElementService ticketElementService, SolutionTypeService solutionTypeService) {
+    public AddInitialData(ComplaintTicketService complaintTicketService, TicketingUserService ticketingUserService, TicketingUserRepository ticketingUserRepository, TicketElementService ticketElementService, SolutionTypeService solutionTypeService, CustomerService customerService) {
         this.complaintTicketService = complaintTicketService;
         this.ticketingUserService = ticketingUserService;
         this.ticketElementService = ticketElementService;
         this.dotenv = Dotenv.load();
         this.ticketingUserRepository = ticketingUserRepository;
         this.solutionTypeService = solutionTypeService;
+        this.customerService = customerService;
     }
 
 
@@ -77,11 +80,13 @@ public class AddInitialData implements CommandLineRunner {
                 .phoneNumber("0748882012")
                 .build();
 
+        var savedCustomer = customerService.createCustomer(customer);
+
         complaintTicketService.createTicket(
                 TicketCreationRequest.builder()
                         .ticketElementName(ticketElementService.getAllTicketElements().stream().findFirst().get().getName())
                         .description("Test ticket")
-                        .customer(customer)
+                        .customerId(savedCustomer.getCustomerId())
                         .build(),
                 authentication);
 

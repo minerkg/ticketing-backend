@@ -9,6 +9,7 @@ import org.ubb.ticketing.domain.TicketType;
 import org.ubb.ticketing.domain.customer.Customer;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -17,7 +18,7 @@ import java.io.Serializable;
 public class TicketCreationRequest implements Serializable {
 
 
-    private Customer customer;
+    private UUID customerId;
     private TicketType ticketType;
     private String ticketElementName;
     private String description;

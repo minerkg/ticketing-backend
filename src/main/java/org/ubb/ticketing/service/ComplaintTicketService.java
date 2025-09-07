@@ -19,13 +19,11 @@ import org.ubb.ticketing.dto.ComplaintTicketRequest;
 import org.ubb.ticketing.dto.TicketCloseRequest;
 import org.ubb.ticketing.dto.TicketCreationRequest;
 import org.ubb.ticketing.dto.TicketingUserDto;
+import org.ubb.ticketing.exception.CustomerNotFoundException;
 import org.ubb.ticketing.exception.TicketNotFoundException;
 import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.exception.UserNotFoundException;
-import org.ubb.ticketing.repository.ComplaintTicketRepository;
-import org.ubb.ticketing.repository.SolutionTypeRepository;
-import org.ubb.ticketing.repository.TicketElementRepository;
-import org.ubb.ticketing.repository.TicketingUserRepository;
+import org.ubb.ticketing.repository.*;
 import org.ubb.ticketing.service.notification.NotificationService;
 
 import java.time.LocalDateTime;
@@ -44,17 +42,19 @@ public class ComplaintTicketService {
     private final TicketElementRepository ticketElementRepository;
     private final SolutionTypeRepository solutionTypeRepository;
     private final NotificationService notificationService;
+    private final CustomerRepository customerRepository;
 
     public ComplaintTicketService(ComplaintTicketRepository complaintTicketRepository,
                                   ComplaintTicketValidator complaintTicketValidator,
                                   TicketingUserRepository ticketingUserRepository,
-                                  TicketElementRepository ticketElementRepository, SolutionTypeRepository solutionTypeRepository, NotificationService notificationService) {
+                                  TicketElementRepository ticketElementRepository, SolutionTypeRepository solutionTypeRepository, NotificationService notificationService, CustomerRepository customerRepository) {
         this.complaintTicketRepository = complaintTicketRepository;
         this.complaintTicketValidator = complaintTicketValidator;
         this.ticketingUserRepository = ticketingUserRepository;
         this.ticketElementRepository = ticketElementRepository;
         this.solutionTypeRepository = solutionTypeRepository;
         this.notificationService = notificationService;
+        this.customerRepository = customerRepository;
     }
 
 
@@ -90,7 +90,11 @@ public class ComplaintTicketService {
         complaintTicket.setTicketElement(ticketElementRepository
                 .findByName(ticketRequest.getTicketElementName()).getFirst());
         complaintTicket.setDescription(ticketRequest.getDescription());
-        complaintTicket.setCustomer(ticketRequest.getCustomer());
+
+        var savedCustomer = customerRepository.findById(ticketRequest.getCustomerId()).orElseThrow(
+                () -> new CustomerNotFoundException("No customer with id " + ticketRequest.getCustomerId())
+        );
+        complaintTicket.setCustomer(savedCustomer);
 
         var persistedTicket = complaintTicketRepository.save(complaintTicket);
         logger.debug("Complaint ticket created successfully: {}", persistedTicket);
