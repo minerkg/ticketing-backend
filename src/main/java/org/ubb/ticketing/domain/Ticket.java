@@ -4,13 +4,12 @@ package org.ubb.ticketing.domain;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.ubb.ticketing.domain.client.Client;
+import org.ubb.ticketing.domain.customer.Customer;
 import org.ubb.ticketing.domain.user.TicketingUser;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @MappedSuperclass
@@ -27,7 +26,7 @@ public abstract class Ticket implements Serializable {
     private Long ticketId;
 
     @ManyToOne(cascade = CascadeType.ALL)
-    private Client client;
+    private Customer customer;
 
     @Enumerated(EnumType.STRING)
     private TicketType ticketType;
