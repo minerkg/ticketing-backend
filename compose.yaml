@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: ticketing-backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env   # loads all the vars in your .env
+    environment:
+      # Database vars (Spring Boot reads these in application.properties)
+      TICKETING_DB_USER: ${TICKETING_DB_USER}
+      TICKETING_DB_PASS: ${TICKETING_DB_PASS}
+

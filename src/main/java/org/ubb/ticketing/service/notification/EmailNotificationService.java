@@ -5,6 +5,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -13,8 +14,8 @@ import org.ubb.ticketing.domain.Ticket;
 import org.ubb.ticketing.exception.NotificationException;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,7 +44,7 @@ public class EmailNotificationService implements NotificationService {
         placeholders.put("date-time", ticket.getCreatedWhen().format(EMAIL_DATE_FORMATTER));
         placeholders.put("text", "Ticket created with id: " + ticket.getTicketId());
         try {
-            String body = loadEmailTemplate("src/main/resources/email-templates/ticket-created.html", placeholders);
+            String body = loadEmailTemplate("ticket-created.html", placeholders);
             MimeMessage message = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
@@ -71,7 +72,7 @@ public class EmailNotificationService implements NotificationService {
 
 
         try {
-            String body = loadEmailTemplate("src/main/resources/email-templates/ticket-assigned.html", placeholders);
+            String body = loadEmailTemplate("ticket-assigned.html", placeholders);
             MimeMessage message = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
@@ -99,7 +100,7 @@ public class EmailNotificationService implements NotificationService {
 
 
         try {
-            String body = loadEmailTemplate("src/main/resources/email-templates/ticket-closed.html", placeholders);
+            String body = loadEmailTemplate("ticket-closed.html", placeholders);
             MimeMessage message = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
@@ -115,12 +116,17 @@ public class EmailNotificationService implements NotificationService {
 
     }
 
-    private String loadEmailTemplate(String path, Map<String, String> placeholders) throws IOException {
-        String template = Files.readString(Paths.get(path));
-        for (Map.Entry<String, String> entry : placeholders.entrySet()) {
-            template = template.replace("${" + entry.getKey() + "}", entry.getValue());
+
+    private String loadEmailTemplate(String filename, Map<String, String> placeholders) throws IOException {
+        ClassPathResource resource = new ClassPathResource("email-templates/" + filename);
+        try (InputStream in = resource.getInputStream()) {
+            String template = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+                template = template.replace("${" + entry.getKey() + "}", entry.getValue());
+            }
+            return template;
         }
-        return template;
     }
+
 
 }
