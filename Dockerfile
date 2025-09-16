@@ -43,6 +43,5 @@ COPY --from=builder /app/build/libs/*.war api-v1.war
 
 #COPY .env /opt/tomcat/webapps/.env
 
-
 EXPOSE 8080
 CMD ["/opt/tomcat/bin/catalina.sh", "run"]

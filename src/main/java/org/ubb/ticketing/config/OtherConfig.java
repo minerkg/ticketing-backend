@@ -16,9 +16,13 @@ import java.util.Properties;
 @Configuration
 public class OtherConfig {
 
-    private final Dotenv dotenv = Dotenv.load();
-    private final String EMAIL_USERNAME = dotenv.get("EMAIL_USERNAME");
-    private final String EMAIL_PASSWORD = dotenv.get("EMAIL_PASSWORD");
+    private final Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+    private final String EMAIL_USERNAME = System.getenv("EMAIL_USERNAME") != null
+            ? System.getenv("EMAIL_USERNAME")
+            : dotenv.get("EMAIL_USERNAME");
+    private final String EMAIL_PASSWORD = System.getenv("EMAIL_PASSWORD") != null
+            ? System.getenv("EMAIL_PASSWORD")
+            : dotenv.get("EMAIL_PASSWORD");
 
     @Bean
     public ModelMapper modelMapper() {
