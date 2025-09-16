@@ -26,8 +26,12 @@ public class EmailNotificationService implements NotificationService {
     private static final DateTimeFormatter EMAIL_DATE_FORMATTER =
             DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private final JavaMailSender javaMailSender;
-    private final Dotenv dotenv = Dotenv.load();
-    private final String EMAIL_FROM = dotenv.get("EMAIL_FROM");
+    private final Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+
+    private final String EMAIL_FROM = System.getenv("EMAIL_FROM") != null
+            ? System.getenv("EMAIL_FROM")
+            : dotenv.get("EMAIL_FROM");
+
     private final Logger logger = LoggerFactory.getLogger(EmailNotificationService.class);
 
     public EmailNotificationService(JavaMailSender javaMailSender) {

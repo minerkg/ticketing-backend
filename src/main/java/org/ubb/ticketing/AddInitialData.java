@@ -32,7 +32,7 @@ public class AddInitialData implements CommandLineRunner {
         this.complaintTicketService = complaintTicketService;
         this.ticketingUserService = ticketingUserService;
         this.ticketElementService = ticketElementService;
-        this.dotenv = Dotenv.load();
+        this.dotenv = Dotenv.configure().ignoreIfMissing().load();
         this.ticketingUserRepository = ticketingUserRepository;
         this.solutionTypeService = solutionTypeService;
         this.customerService = customerService;
@@ -41,10 +41,12 @@ public class AddInitialData implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-
-
-        String usernameAdmin = dotenv.get("USERNAME_ADMIN");
-        String passwordAdmin = dotenv.get("PASSWORD_ADMIN");
+        String usernameAdmin = System.getenv("USERNAME_ADMIN") != null
+                ? System.getenv("USERNAME_ADMIN")
+                : dotenv.get("USERNAME_ADMIN");
+        String passwordAdmin = System.getenv("PASSWORD_ADMIN") != null
+                ? System.getenv("PASSWORD_ADMIN")
+                : dotenv.get("PASSWORD_ADMIN");
         UserRegistrationRequest adminUser = UserRegistrationRequest.builder()
                 .username(usernameAdmin)
                 .password(passwordAdmin)
