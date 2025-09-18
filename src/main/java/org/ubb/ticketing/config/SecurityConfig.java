@@ -60,7 +60,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/complaint-tickets").authenticated()
                         .requestMatchers(HttpMethod.GET, "/complaint-tickets").permitAll()
                         .requestMatchers("/user/change-password").authenticated()
-                        .requestMatchers("/user/all-users").hasRole("ADMIN")
+                        .requestMatchers("/user/all-users").hasAnyRole("ADMIN", "SUPERVISOR")
                         .requestMatchers("/user/register").permitAll()
                         .requestMatchers("/user/**").authenticated()
                         .requestMatchers("/admin/**").hasRole("ADMIN")

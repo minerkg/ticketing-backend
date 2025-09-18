@@ -19,8 +19,10 @@ import org.ubb.ticketing.converter.UserDtoConverter;
 import org.ubb.ticketing.domain.user.TicketingUser;
 import org.ubb.ticketing.domain.user.UserRole;
 import org.ubb.ticketing.domain.validator.PasswordValidator;
+import org.ubb.ticketing.domain.validator.TicketingUserDetailUpdateValidator;
 import org.ubb.ticketing.domain.validator.TicketingUserValidator;
 import org.ubb.ticketing.dto.TicketingUserDto;
+import org.ubb.ticketing.dto.UserDetailUpdateRequest;
 import org.ubb.ticketing.dto.UserRegistrationRequest;
 import org.ubb.ticketing.exception.PasswordException;
 import org.ubb.ticketing.exception.UserAlreadyExistsException;
@@ -36,14 +38,16 @@ public class TicketingUserService {
     private final TicketingUserRepository ticketingUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final TicketingUserValidator ticketingUserValidator;
+    private final TicketingUserDetailUpdateValidator ticketingUserUpdateValidator;
     private final PasswordValidator passwordValidator;
     private final Logger logger = LoggerFactory.getLogger(TicketingUserService.class);
     private final UserDtoConverter userDtoConverter;
 
-    public TicketingUserService(TicketingUserRepository ticketingUserRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator, PasswordValidator passwordValidator, UserDtoConverter userDtoConverter) {
+    public TicketingUserService(TicketingUserRepository ticketingUserRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator, TicketingUserDetailUpdateValidator ticketingUserUpdateValidator, PasswordValidator passwordValidator, UserDtoConverter userDtoConverter) {
         this.ticketingUserRepository = ticketingUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.ticketingUserValidator = ticketingUserValidator;
+        this.ticketingUserUpdateValidator = ticketingUserUpdateValidator;
         this.passwordValidator = passwordValidator;
         this.userDtoConverter = userDtoConverter;
     }
@@ -126,5 +130,33 @@ public class TicketingUserService {
         TicketingUser currentUser = ticketingUserRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("User not found with username: " + userDetails.getUsername()));
         return userDtoConverter.convertModelToDto(currentUser);
+    }
+
+
+    @Transactional
+    public TicketingUserDto updateUserDetails(Authentication authentication, UserDetailUpdateRequest userRequest) {
+        logger.info("Updating user details for user {}", userRequest.getUsername());
+        Errors userErrors = new BeanPropertyBindingResult(userRequest, "userRequest");
+
+        var currentUser = (TicketingUser) authentication.getPrincipal();
+        if (currentUser.getUserRole() != UserRole.ADMIN
+                && !currentUser.getUserId().equals(userRequest.getUserId())) {
+            throw new AccessDeniedException("You are not allowed to update this user's details.");
+        }
+
+        ticketingUserUpdateValidator.validate(userRequest, userErrors);
+        if (userErrors.hasErrors()) {
+            throw new ValidationException("User detail update validation failed: " + userErrors.getAllErrors());
+        }
+
+        TicketingUser user = ticketingUserRepository.findByUserId(userRequest.getUserId())
+                .orElseThrow(() -> new UserNotFoundException("User not found with username: " + userRequest.getUsername()));
+
+        user.setFirstName(userRequest.getFirstName());
+        user.setLastName(userRequest.getLastName());
+        user.setEmail(userRequest.getEmail());
+
+        return userDtoConverter.convertModelToDto(user);
+
     }
 }
