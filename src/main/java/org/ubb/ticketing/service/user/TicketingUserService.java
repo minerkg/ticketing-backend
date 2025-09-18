@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
 import org.ubb.ticketing.converter.UserDtoConverter;
+import org.ubb.ticketing.domain.user.ConfirmationToken;
 import org.ubb.ticketing.domain.user.TicketingUser;
 import org.ubb.ticketing.domain.user.UserRole;
 import org.ubb.ticketing.domain.validator.PasswordValidator;
@@ -25,10 +26,15 @@ import org.ubb.ticketing.dto.TicketingUserDto;
 import org.ubb.ticketing.dto.UserDetailUpdateRequest;
 import org.ubb.ticketing.dto.UserRegistrationRequest;
 import org.ubb.ticketing.exception.PasswordException;
+import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.exception.UserAlreadyExistsException;
 import org.ubb.ticketing.exception.UserNotFoundException;
 import org.ubb.ticketing.repository.TicketingUserRepository;
+import org.ubb.ticketing.repository.TokenRepository;
+import org.ubb.ticketing.service.notification.EmailNotificationService;
+import org.ubb.ticketing.service.notification.NotificationService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -42,19 +48,25 @@ public class TicketingUserService {
     private final PasswordValidator passwordValidator;
     private final Logger logger = LoggerFactory.getLogger(TicketingUserService.class);
     private final UserDtoConverter userDtoConverter;
+    private final TokenRepository tokenRepository;
+    private final ConfirmationTokenService confirmationTokenService;
+    private final NotificationService notificationService;
 
-    public TicketingUserService(TicketingUserRepository ticketingUserRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator, TicketingUserDetailUpdateValidator ticketingUserUpdateValidator, PasswordValidator passwordValidator, UserDtoConverter userDtoConverter) {
+    public TicketingUserService(TicketingUserRepository ticketingUserRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator, TicketingUserDetailUpdateValidator ticketingUserUpdateValidator, PasswordValidator passwordValidator, UserDtoConverter userDtoConverter, TokenRepository tokenRepository, ConfirmationTokenService confirmationTokenService, NotificationService notificationService) {
         this.ticketingUserRepository = ticketingUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.ticketingUserValidator = ticketingUserValidator;
         this.ticketingUserUpdateValidator = ticketingUserUpdateValidator;
         this.passwordValidator = passwordValidator;
         this.userDtoConverter = userDtoConverter;
+        this.tokenRepository = tokenRepository;
+        this.confirmationTokenService = confirmationTokenService;
+        this.notificationService = notificationService;
     }
 
 
     @Transactional
-    public TicketingUserDto registerUser(UserRegistrationRequest userRequest) {
+    public TicketingUserDto registerUser(UserRegistrationRequest userRequest, String baseUrl) {
         logger.info("Registering user {}", userRequest.getUsername());
         Errors userErrors = new BeanPropertyBindingResult(userRequest, "userRequest");
         ticketingUserValidator.validate(userRequest, userErrors);
@@ -77,11 +89,16 @@ public class TicketingUserService {
                     .lastName(userRequest.getLastName())
                     .email(userRequest.getEmail())
                     .userRole(UserRole.USER)
+                    .accountEnabled(false)
                     .build();
 
-            // TODO: Validate that the email exists and is confirmed
+            var savedNewUser = ticketingUserRepository.save(newUser);
+            var token = confirmationTokenService.generateToken(savedNewUser.getUserId());
+            tokenRepository.save(token);
 
-            return userDtoConverter.convertModelToDto(ticketingUserRepository.save(newUser));
+            notificationService.notifyTokenGenerated(savedNewUser, token, baseUrl);
+
+            return userDtoConverter.convertModelToDto(savedNewUser);
 
         } catch (DataIntegrityViolationException e) {
             throw new UserAlreadyExistsException("A user with the provided email or username already exists", e);
@@ -158,5 +175,26 @@ public class TicketingUserService {
 
         return userDtoConverter.convertModelToDto(user);
 
+    }
+
+    @Transactional
+    public boolean confirmRegistration(String token) {
+        ConfirmationToken confirmationToken = tokenRepository.findByToken(token)
+                .orElseThrow(() -> new TicketingSystemException("Invalid token"));
+
+        if (confirmationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new TicketingSystemException("Token expired");
+        }
+
+        TicketingUser user = ticketingUserRepository.findByUserId(confirmationToken.getUserId()).orElseThrow(
+                () -> new UserNotFoundException("User not found"));
+        if (user.isAccountEnabled()) {
+            throw new TicketingSystemException("Account already confirmed");
+        }
+
+        user.setAccountEnabled(true);
+
+        tokenRepository.delete(confirmationToken);
+        return true;
     }
 }

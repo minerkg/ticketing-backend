@@ -11,6 +11,8 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.ubb.ticketing.domain.Ticket;
+import org.ubb.ticketing.domain.user.ConfirmationToken;
+import org.ubb.ticketing.domain.user.TicketingUser;
 import org.ubb.ticketing.exception.NotificationException;
 
 import java.io.IOException;
@@ -119,6 +121,36 @@ public class EmailNotificationService implements NotificationService {
         }
 
     }
+
+    @Async
+    @Override
+    public void notifyTokenGenerated(TicketingUser user, ConfirmationToken token, String baseUrl) {
+        logger.debug("notifyTokenGenerated method accessed");
+
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("first-name", user.getFirstName());
+        placeholders.put("last-name", user.getLastName());
+        placeholders.put("confirmation-link", baseUrl + "?token=" + token.getToken());
+        placeholders.put("expiry-date", token.getExpiryDate().format(EMAIL_DATE_FORMATTER));
+
+        try {
+            String body = loadEmailTemplate("registration-confirmation.html", placeholders);
+
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            message.setFrom(EMAIL_FROM);
+            helper.setTo(user.getEmail());
+            helper.setSubject("Confirm your registration");
+            helper.setText(body, true);
+
+            javaMailSender.send(message);
+        } catch (IOException | MessagingException e) {
+            logger.error("notifyTokenGenerated internal error", e);
+            throw new NotificationException(e);
+        }
+    }
+
 
 
     private String loadEmailTemplate(String filename, Map<String, String> placeholders) throws IOException {

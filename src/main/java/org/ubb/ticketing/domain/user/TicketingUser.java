@@ -67,6 +67,8 @@ public class TicketingUser implements UserDetails, Serializable {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
+    @Column(nullable = false)
+    private boolean accountEnabled = false;
 
 //    @OneToMany(mappedBy = "createdBy")
 //    private List<Ticket> createdTickets;

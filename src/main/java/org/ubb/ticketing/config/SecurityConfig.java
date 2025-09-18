@@ -62,6 +62,7 @@ public class SecurityConfig {
                         .requestMatchers("/user/change-password").authenticated()
                         .requestMatchers("/user/all-users").hasAnyRole("ADMIN", "SUPERVISOR")
                         .requestMatchers("/user/register").permitAll()
+                        .requestMatchers("/user/registerConfirm").permitAll()
                         .requestMatchers("/user/**").authenticated()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/supervisor/**").hasRole("SUPERVISOR")

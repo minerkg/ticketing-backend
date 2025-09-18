@@ -9,8 +9,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.ubb.ticketing.dto.*;
 import org.ubb.ticketing.exception.PasswordException;
+import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.exception.UserNotFoundException;
 import org.ubb.ticketing.service.user.TicketingUserService;
 
@@ -29,8 +31,11 @@ public class TicketingUserController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<TicketingUserDto>> registerUser(@RequestBody UserRegistrationRequest registerRequest) {
+        String confirmationLink = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/user/registerConfirm")
+                .toUriString();
         try {
-            var newUser = ticketingUserService.registerUser(registerRequest);
+            var newUser = ticketingUserService.registerUser(registerRequest, confirmationLink);
             logger.info("User {} created successfully", newUser.getUsername());
             return ResponseEntity.ok()
                     .body(new ApiResponse<>("user created", newUser));
@@ -153,6 +158,21 @@ public class TicketingUserController {
                     .body(new ApiResponse<>("internal server error", null));
         }
 
+    }
+
+    @GetMapping("/registerConfirm")
+    public ResponseEntity<String> confirmUser(@RequestParam("token") String token) {
+        logger.debug("confirmUser accessed in controller");
+        try {
+            var isConfirmed = ticketingUserService.confirmRegistration(token);
+            return ResponseEntity.ok("Account confirmed! You can now log in.");
+        } catch (TicketingSystemException e) {
+            logger.error("confirmUser internal error", e);
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            logger.error("confirmUser internal error", e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
 
