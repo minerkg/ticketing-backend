@@ -119,7 +119,7 @@ public class TicketingUserService {
     }
 
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISOR')")
     public List<TicketingUserDto> getAllUsers() {
         return ticketingUserRepository.findAllUsersWithoutPassword();
     }

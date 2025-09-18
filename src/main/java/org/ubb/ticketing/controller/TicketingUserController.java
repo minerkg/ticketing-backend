@@ -96,7 +96,7 @@ public class TicketingUserController {
             @RequestBody RoleUpdateRequest roleUpdateRequest,
             Authentication authentication) {
         try {
-            ticketingUserService.updateUserRole(authentication.getName(), roleUpdateRequest.getNewRole());
+            ticketingUserService.updateUserRole(roleUpdateRequest.getUsername(), roleUpdateRequest.getNewRole());
             return ResponseEntity.ok(new ApiResponse<>("user role updated", null));
         } catch (AccessDeniedException e) {
             logger.error("user role cant be updated, no admin role", e);
