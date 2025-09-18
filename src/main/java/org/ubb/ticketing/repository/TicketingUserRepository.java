@@ -8,6 +8,7 @@ import org.ubb.ticketing.dto.TicketingUserDto;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface TicketingUserRepository extends JpaRepository<TicketingUser, Long> {
@@ -20,4 +21,5 @@ public interface TicketingUserRepository extends JpaRepository<TicketingUser, Lo
     List<TicketingUserDto> findAllUsersWithoutPassword();
 
 
+    Optional<TicketingUser> findByUserId(UUID userId);
 }

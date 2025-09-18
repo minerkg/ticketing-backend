@@ -9,11 +9,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import org.ubb.ticketing.dto.PasswordChangeRequest;
-import org.ubb.ticketing.dto.RoleUpdateRequest;
-import org.ubb.ticketing.dto.TicketingUserDto;
-import org.ubb.ticketing.dto.UserRegistrationRequest;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.ubb.ticketing.dto.*;
 import org.ubb.ticketing.exception.PasswordException;
+import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.exception.UserNotFoundException;
 import org.ubb.ticketing.service.user.TicketingUserService;
 
@@ -32,8 +31,11 @@ public class TicketingUserController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<TicketingUserDto>> registerUser(@RequestBody UserRegistrationRequest registerRequest) {
+        String confirmationLink = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/user/registerConfirm")
+                .toUriString();
         try {
-            var newUser = ticketingUserService.registerUser(registerRequest);
+            var newUser = ticketingUserService.registerUser(registerRequest, confirmationLink);
             logger.info("User {} created successfully", newUser.getUsername());
             return ResponseEntity.ok()
                     .body(new ApiResponse<>("user created", newUser));
@@ -93,11 +95,13 @@ public class TicketingUserController {
         }
     }
 
+
+    @PutMapping("/role")
     public ResponseEntity<ApiResponse<TicketingUserDto>> updateUserRole(
             @RequestBody RoleUpdateRequest roleUpdateRequest,
             Authentication authentication) {
         try {
-            ticketingUserService.updateUserRole(authentication.getName(), roleUpdateRequest.getNewRole());
+            ticketingUserService.updateUserRole(roleUpdateRequest.getUsername(), roleUpdateRequest.getNewRole());
             return ResponseEntity.ok(new ApiResponse<>("user role updated", null));
         } catch (AccessDeniedException e) {
             logger.error("user role cant be updated, no admin role", e);
@@ -130,6 +134,44 @@ public class TicketingUserController {
             logger.error("getCurrentUser internal error", e);
             return ResponseEntity.internalServerError()
                     .body(new ApiResponse<>("internal server error", null));
+        }
+    }
+
+    @PutMapping("/update-detail")
+    public ResponseEntity<ApiResponse<TicketingUserDto>> updateUser(
+            @RequestBody UserDetailUpdateRequest updateRequest,
+            Authentication authentication) {
+        try {
+            var updatedUser = ticketingUserService.updateUserDetails(authentication, updateRequest);
+            return ResponseEntity.ok(new ApiResponse<>("user detail updated", updatedUser));
+        } catch (AccessDeniedException e) {
+            logger.error("access error", e);
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>("access error", null));
+        } catch (UserNotFoundException e) {
+            logger.error("user not found, details cant be updated", e);
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>("user not found, cant be updated", null));
+        } catch (Exception e) {
+            logger.error("updateUser internal error", e);
+            return ResponseEntity.internalServerError()
+                    .body(new ApiResponse<>("internal server error", null));
+        }
+
+    }
+
+    @GetMapping("/registerConfirm")
+    public ResponseEntity<String> confirmUser(@RequestParam("token") String token) {
+        logger.debug("confirmUser accessed in controller");
+        try {
+            var isConfirmed = ticketingUserService.confirmRegistration(token);
+            return ResponseEntity.ok("Account confirmed! You can now log in.");
+        } catch (TicketingSystemException e) {
+            logger.error("confirmUser internal error", e);
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            logger.error("confirmUser internal error", e);
+            return ResponseEntity.internalServerError().build();
         }
     }
 

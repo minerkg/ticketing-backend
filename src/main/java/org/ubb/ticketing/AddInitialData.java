@@ -55,7 +55,7 @@ public class AddInitialData implements CommandLineRunner {
                 .email("ors@ticketing.com")
                 .build();
 
-        var ticketingUserDto = ticketingUserService.registerUser(adminUser);
+        var ticketingUserDto = ticketingUserService.registerUser(adminUser, "");
         var createdUser = ticketingUserRepository.findByUsername(ticketingUserDto.getUsername()).orElseThrow(
                 () -> new RuntimeException("User not found: " + ticketingUserDto.getUsername())
         );
@@ -66,6 +66,8 @@ public class AddInitialData implements CommandLineRunner {
                 createdUser.getAuthorities()
         );
 
+        createdUser.setAccountEnabled(true);
+        ticketingUserRepository.save(createdUser);
 
         ticketElementService.createTicketElement("Billing complaint");
         ticketElementService.createTicketElement("Service complaint");
