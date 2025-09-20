@@ -9,6 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 import org.ubb.ticketing.dto.*;
+import org.ubb.ticketing.dto.user.TicketingUserDto;
 import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.service.ComplaintTicketService;
 

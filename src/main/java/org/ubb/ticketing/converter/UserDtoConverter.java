@@ -2,7 +2,7 @@ package org.ubb.ticketing.converter;
 
 import org.springframework.stereotype.Component;
 import org.ubb.ticketing.domain.user.TicketingUser;
-import org.ubb.ticketing.dto.TicketingUserDto;
+import org.ubb.ticketing.dto.user.TicketingUserDto;
 
 @Component
 public class UserDtoConverter extends BaseConverter<TicketingUser, TicketingUserDto> {

@@ -1,4 +1,4 @@
-package org.ubb.ticketing.dto;
+package org.ubb.ticketing.dto.user;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

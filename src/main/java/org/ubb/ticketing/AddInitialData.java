@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import org.ubb.ticketing.domain.customer.Customer;
 import org.ubb.ticketing.domain.user.UserRole;
 import org.ubb.ticketing.dto.TicketCreationRequest;
-import org.ubb.ticketing.dto.UserRegistrationRequest;
+import org.ubb.ticketing.dto.user.UserRegistrationRequest;
 import org.ubb.ticketing.repository.TicketingUserRepository;
 import org.ubb.ticketing.service.ComplaintTicketService;
 import org.ubb.ticketing.service.CustomerService;

@@ -3,8 +3,8 @@ package org.ubb.ticketing.domain.validator;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
-import org.ubb.ticketing.dto.UserDetailUpdateRequest;
-import org.ubb.ticketing.dto.UserRegistrationRequest;
+import org.ubb.ticketing.dto.user.UserDetailUpdateRequest;
+import org.ubb.ticketing.dto.user.UserRegistrationRequest;
 import org.ubb.ticketing.repository.TicketingUserRepository;
 
 @Component

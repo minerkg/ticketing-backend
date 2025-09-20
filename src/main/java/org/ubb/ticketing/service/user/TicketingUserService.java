@@ -1,6 +1,7 @@
 package org.ubb.ticketing.service.user;
 
 
+
 import jakarta.transaction.Transactional;
 import jakarta.validation.ValidationException;
 import org.slf4j.Logger;
@@ -8,9 +9,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
@@ -22,16 +24,15 @@ import org.ubb.ticketing.domain.user.UserRole;
 import org.ubb.ticketing.domain.validator.PasswordValidator;
 import org.ubb.ticketing.domain.validator.TicketingUserDetailUpdateValidator;
 import org.ubb.ticketing.domain.validator.TicketingUserValidator;
-import org.ubb.ticketing.dto.TicketingUserDto;
-import org.ubb.ticketing.dto.UserDetailUpdateRequest;
-import org.ubb.ticketing.dto.UserRegistrationRequest;
+import org.ubb.ticketing.dto.user.TicketingUserDto;
+import org.ubb.ticketing.dto.user.UserDetailUpdateRequest;
+import org.ubb.ticketing.dto.user.UserRegistrationRequest;
 import org.ubb.ticketing.exception.PasswordException;
 import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.exception.UserAlreadyExistsException;
 import org.ubb.ticketing.exception.UserNotFoundException;
 import org.ubb.ticketing.repository.TicketingUserRepository;
 import org.ubb.ticketing.repository.TokenRepository;
-import org.ubb.ticketing.service.notification.EmailNotificationService;
 import org.ubb.ticketing.service.notification.NotificationService;
 
 import java.time.LocalDateTime;
@@ -51,8 +52,9 @@ public class TicketingUserService {
     private final TokenRepository tokenRepository;
     private final ConfirmationTokenService confirmationTokenService;
     private final NotificationService notificationService;
+    private final JwtService jwtService;
 
-    public TicketingUserService(TicketingUserRepository ticketingUserRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator, TicketingUserDetailUpdateValidator ticketingUserUpdateValidator, PasswordValidator passwordValidator, UserDtoConverter userDtoConverter, TokenRepository tokenRepository, ConfirmationTokenService confirmationTokenService, NotificationService notificationService) {
+    public TicketingUserService(TicketingUserRepository ticketingUserRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator, TicketingUserDetailUpdateValidator ticketingUserUpdateValidator, PasswordValidator passwordValidator, UserDtoConverter userDtoConverter, TokenRepository tokenRepository, ConfirmationTokenService confirmationTokenService, NotificationService notificationService, JwtService jwtService) {
         this.ticketingUserRepository = ticketingUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.ticketingUserValidator = ticketingUserValidator;
@@ -62,7 +64,24 @@ public class TicketingUserService {
         this.tokenRepository = tokenRepository;
         this.confirmationTokenService = confirmationTokenService;
         this.notificationService = notificationService;
+        this.jwtService = jwtService;
     }
+
+
+//    public String login(String username, String password) {
+//        TicketingUser user = ticketingUserRepository.findByUsername(username)
+//                .orElseThrow(() -> new UserNotFoundException("Invalid username or password"));
+//
+//        if (!user.isAccountEnabled()) {
+//            throw new DisabledException("Account not confirmed");
+//        }
+//
+//        if (!passwordEncoder.matches(password, user.getPassword())) {
+//            throw new BadCredentialsException("Invalid username or password");
+//        }
+//
+//        return jwtService.generateToken(user.getUsername(), user.getUserRole().name());
+//    }
 
 
     @Transactional
@@ -143,11 +162,17 @@ public class TicketingUserService {
 
     public TicketingUserDto getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        TicketingUser currentUser = ticketingUserRepository.findByUsername(userDetails.getUsername())
-                .orElseThrow(() -> new UserNotFoundException("User not found with username: " + userDetails.getUsername()));
+        org.springframework.security.oauth2.jwt.Jwt jwt =
+                (org.springframework.security.oauth2.jwt.Jwt) authentication.getPrincipal();
+
+        String username = jwt.getClaim("sub");
+
+        TicketingUser currentUser = ticketingUserRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
+
         return userDtoConverter.convertModelToDto(currentUser);
     }
+
 
 
     @Transactional

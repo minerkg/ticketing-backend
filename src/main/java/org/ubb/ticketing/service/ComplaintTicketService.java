@@ -18,7 +18,7 @@ import org.ubb.ticketing.domain.validator.ComplaintTicketValidator;
 import org.ubb.ticketing.dto.ComplaintTicketRequest;
 import org.ubb.ticketing.dto.TicketCloseRequest;
 import org.ubb.ticketing.dto.TicketCreationRequest;
-import org.ubb.ticketing.dto.TicketingUserDto;
+import org.ubb.ticketing.dto.user.TicketingUserDto;
 import org.ubb.ticketing.exception.CustomerNotFoundException;
 import org.ubb.ticketing.exception.TicketNotFoundException;
 import org.ubb.ticketing.exception.TicketingSystemException;
