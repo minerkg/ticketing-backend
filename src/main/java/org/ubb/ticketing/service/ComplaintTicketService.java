@@ -25,6 +25,7 @@ import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.exception.UserNotFoundException;
 import org.ubb.ticketing.repository.*;
 import org.ubb.ticketing.service.notification.NotificationService;
+import org.ubb.ticketing.service.user.TicketingUserService;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -43,11 +44,12 @@ public class ComplaintTicketService {
     private final SolutionTypeRepository solutionTypeRepository;
     private final NotificationService notificationService;
     private final CustomerRepository customerRepository;
+    private final TicketingUserService ticketingUserService;
 
     public ComplaintTicketService(ComplaintTicketRepository complaintTicketRepository,
                                   ComplaintTicketValidator complaintTicketValidator,
                                   TicketingUserRepository ticketingUserRepository,
-                                  TicketElementRepository ticketElementRepository, SolutionTypeRepository solutionTypeRepository, NotificationService notificationService, CustomerRepository customerRepository) {
+                                  TicketElementRepository ticketElementRepository, SolutionTypeRepository solutionTypeRepository, NotificationService notificationService, CustomerRepository customerRepository, TicketingUserService ticketingUserService) {
         this.complaintTicketRepository = complaintTicketRepository;
         this.complaintTicketValidator = complaintTicketValidator;
         this.ticketingUserRepository = ticketingUserRepository;
@@ -55,6 +57,7 @@ public class ComplaintTicketService {
         this.solutionTypeRepository = solutionTypeRepository;
         this.notificationService = notificationService;
         this.customerRepository = customerRepository;
+        this.ticketingUserService = ticketingUserService;
     }
 
 
@@ -75,7 +78,10 @@ public class ComplaintTicketService {
     @Transactional
     public ComplaintTicket createTicket(TicketCreationRequest ticketRequest, Authentication authentication) {
         logger.debug("create complaint ticket accessed in service");
-        var currentUser = (TicketingUser) authentication.getPrincipal();
+
+
+        var currentUser = ticketingUserService.getCurrentUser(authentication);
+
         logger.debug("Current user: {}", currentUser.getUsername());
         var user = ticketingUserRepository.findByUsername(currentUser.getUsername()).orElseThrow(
                 () -> new UserNotFoundException("User not found with username: " + currentUser.getUsername())
@@ -123,7 +129,8 @@ public class ComplaintTicketService {
                 .orElseThrow(() -> new UserNotFoundException("No user with name " + assignedToDto.getUsername()));
 
         //check if the current user is the user who wants to assign to himself the ticket with any role or has a supervisor role
-        var currentUser = (TicketingUser) authentication.getPrincipal();
+        var currentUser = ticketingUserService.getCurrentUser(authentication);
+
         if (!currentUser.getUserId().equals(assignedToUser.getUserId()) &&
                 currentUser.getAuthorities().stream()
                         .noneMatch(a -> a.getAuthority().equals("ROLE_SUPERVISOR")
@@ -157,7 +164,8 @@ public class ComplaintTicketService {
         }
 
         //check if the current user is the assigned user otherwise notify the user
-        var currentUser = (TicketingUser) authentication.getPrincipal();
+        var currentUser = ticketingUserService.getCurrentUser(authentication);
+
         var persistedCurrentUser = ticketingUserRepository.findByUsername(currentUser.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("No user with name " + currentUser.getUsername()));
 
@@ -193,7 +201,7 @@ public class ComplaintTicketService {
     public ComplaintTicket closeTicket(Long id, Authentication authentication,
                                        TicketCloseRequest ticketCloseRequest) {
         logger.debug("closeTicket complaint ticket accessed in service");
-        var currentUser = (TicketingUser) authentication.getPrincipal();
+        var currentUser = ticketingUserService.getCurrentUser(authentication);
 
         var persistedCurrentUser = ticketingUserRepository
                 .findByUsername(currentUser.getUsername())
@@ -233,7 +241,8 @@ public class ComplaintTicketService {
 
     public List<ComplaintTicket> getCurrentUserAssignedTickets(Authentication authentication) {
         logger.debug("getCurrentUserTickets complaint ticket accessed in service");
-        var currentUser = (TicketingUser) authentication.getPrincipal();
+        var currentUser = ticketingUserService.getCurrentUser(authentication);
+
         return complaintTicketRepository.findAll()
                 .stream()
                 .filter(ct -> ct.getTicketStatus() == TicketStatus.ASSIGNED
@@ -246,7 +255,8 @@ public class ComplaintTicketService {
     @Transactional
     public ComplaintTicket cancelTicket(Long ticketId, Authentication authentication) {
         logger.debug("cancelTicket complaint ticket accessed in service");
-        var currentUser = (TicketingUser) authentication.getPrincipal();
+        var currentUser = ticketingUserService.getCurrentUser(authentication);
+
         var ticket = complaintTicketRepository
                 .findById(ticketId).orElseThrow(
                         () -> new TicketNotFoundException("No complaint ticket with id " + ticketId)

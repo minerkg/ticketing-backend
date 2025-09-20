@@ -9,10 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
@@ -160,8 +157,7 @@ public class TicketingUserService {
         return ticketingUserRepository.findAllUsersWithoutPassword();
     }
 
-    public TicketingUserDto getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    public TicketingUserDto getCurrentUserDto(Authentication authentication) {
         org.springframework.security.oauth2.jwt.Jwt jwt =
                 (org.springframework.security.oauth2.jwt.Jwt) authentication.getPrincipal();
 
@@ -171,6 +167,32 @@ public class TicketingUserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
 
         return userDtoConverter.convertModelToDto(currentUser);
+    }
+
+    public TicketingUser getCurrentUser(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+        String username;
+        switch (principal) {
+            case org.springframework.security.oauth2.jwt.Jwt jwt -> {
+                // Case: request with JWT token
+                username = jwt.getClaim("sub");
+
+            }
+            case org.springframework.security.core.userdetails.UserDetails userDetails -> {
+                // Case: programmatic login or AuthenticationManager.authenticate()
+                username = userDetails.getUsername();
+            }
+            case String str -> {
+                // Case: principal is just a username
+                username = str;
+            }
+            default -> {
+                throw new IllegalStateException("Unsupported principal type: " + principal.getClass());
+            }
+        }
+
+        return ticketingUserRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
     }
 
 

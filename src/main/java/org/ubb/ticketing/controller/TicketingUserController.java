@@ -16,11 +16,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.ubb.ticketing.domain.user.TicketingUser;
-import org.ubb.ticketing.domain.user.UserRole;
 import org.ubb.ticketing.dto.user.*;
 import org.ubb.ticketing.exception.PasswordException;
 import org.ubb.ticketing.exception.TicketingSystemException;
@@ -141,12 +139,12 @@ public class TicketingUserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<TicketingUserDto>> getCurrentUser() {
+    public ResponseEntity<ApiResponse<TicketingUserDto>> getCurrentUser(Authentication authentication) {
         try {
             logger.info("getCurrentUser accessed in controller");
             return ResponseEntity
                     .ok(new ApiResponse<>("current user",
-                            ticketingUserService.getCurrentUser()));
+                            ticketingUserService.getCurrentUserDto(authentication)));
         } catch (UserNotFoundException e) {
             logger.error("getAllTickets user not found", e);
             return ResponseEntity.badRequest()
