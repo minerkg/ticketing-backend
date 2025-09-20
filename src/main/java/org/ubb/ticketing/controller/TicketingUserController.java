@@ -1,19 +1,27 @@
 package org.ubb.ticketing.controller;
 
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ValidationException;
+import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.ubb.ticketing.dto.*;
+import org.ubb.ticketing.dto.user.*;
 import org.ubb.ticketing.exception.PasswordException;
 import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.exception.UserNotFoundException;
+import org.ubb.ticketing.service.user.JwtService;
+import org.ubb.ticketing.service.user.TicketingUserDetailsService;
 import org.ubb.ticketing.service.user.TicketingUserService;
 
 @RestController
@@ -22,10 +30,18 @@ public class TicketingUserController {
 
     private final TicketingUserService ticketingUserService;
     private final Logger logger = LoggerFactory.getLogger(TicketingUserController.class);
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
+    private final ModelMapper modelMapper;
+    private final TicketingUserDetailsService ticketingUserDetailsService;
 
 
-    public TicketingUserController(TicketingUserService ticketingUserService) {
+    public TicketingUserController(TicketingUserService ticketingUserService, JwtService jwtService, AuthenticationManager authenticationManager, ModelMapper modelMapper, TicketingUserDetailsService ticketingUserDetailsService) {
         this.ticketingUserService = ticketingUserService;
+        this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
+        this.modelMapper = modelMapper;
+        this.ticketingUserDetailsService = ticketingUserDetailsService;
     }
 
 
@@ -120,12 +136,12 @@ public class TicketingUserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<TicketingUserDto>> getCurrentUser() {
+    public ResponseEntity<ApiResponse<TicketingUserDto>> getCurrentUser(Authentication authentication) {
         try {
             logger.info("getCurrentUser accessed in controller");
             return ResponseEntity
                     .ok(new ApiResponse<>("current user",
-                            ticketingUserService.getCurrentUser()));
+                            ticketingUserService.getCurrentUserDto(authentication)));
         } catch (UserNotFoundException e) {
             logger.error("getAllTickets user not found", e);
             return ResponseEntity.badRequest()
@@ -173,6 +189,63 @@ public class TicketingUserController {
             logger.error("confirmUser internal error", e);
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+        try {
+            LoginResponse loginResp = ticketingUserService.login(request);
+
+            ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", loginResp.getAccessToken())
+                    .httpOnly(true)
+                    .secure(true)
+                    .path("/user/refresh")
+                    .maxAge(7 * 24 * 60 * 60)
+                    .sameSite("Strict")
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+
+            return ResponseEntity.ok(
+                    LoginResponse.builder()
+                            .accessToken(loginResp.getAccessToken())
+                            .user(loginResp.getUser())
+                            .build()
+            );
+        } catch (BadCredentialsException e) {
+            logger.error("login bad credentials", e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .build();
+        } catch (Exception e) {
+            logger.error("login internal error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+
+    @PostMapping("/refresh")
+    public ResponseEntity<RefreshResponse> refresh(@CookieValue(name = "refreshToken") String refreshToken) {
+        RefreshResponse respt = null;
+        try {
+            respt = ticketingUserService.refreshToken(refreshToken);
+        } catch (Exception e) {
+            logger.error("refreshToken internal error", e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        return ResponseEntity.ok(respt);
+    }
+
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletResponse response) {
+        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/user/refresh")
+                .maxAge(0)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
+        return ResponseEntity.ok().build();
     }
 
 

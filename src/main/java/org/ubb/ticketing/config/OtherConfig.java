@@ -2,14 +2,12 @@ package org.ubb.ticketing.config;
 
 import io.github.cdimascio.dotenv.Dotenv;
 import org.modelmapper.ModelMapper;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import java.util.Properties;
 
@@ -59,11 +57,5 @@ public class OtherConfig {
         return executor;
     }
 
-//    @Bean
-//    public CommandLineRunner logEndpoints(RequestMappingHandlerMapping mapping) {
-//        return args -> mapping.getHandlerMethods().forEach((key, value) ->
-//                System.out.println("Mapped: " + key + " -> " + value)
-//        );
-//    }
 
 }

@@ -2,13 +2,15 @@ package org.ubb.ticketing;
 
 import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.ubb.ticketing.domain.customer.Customer;
 import org.ubb.ticketing.domain.user.UserRole;
 import org.ubb.ticketing.dto.TicketCreationRequest;
-import org.ubb.ticketing.dto.UserRegistrationRequest;
+import org.ubb.ticketing.dto.user.UserRegistrationRequest;
 import org.ubb.ticketing.repository.TicketingUserRepository;
 import org.ubb.ticketing.service.ComplaintTicketService;
 import org.ubb.ticketing.service.CustomerService;
@@ -27,8 +29,9 @@ public class AddInitialData implements CommandLineRunner {
     private final TicketElementService ticketElementService;
     private final SolutionTypeService solutionTypeService;
     private final CustomerService customerService;
+    private final AuthenticationManager authenticationManager;
 
-    public AddInitialData(ComplaintTicketService complaintTicketService, TicketingUserService ticketingUserService, TicketingUserRepository ticketingUserRepository, TicketElementService ticketElementService, SolutionTypeService solutionTypeService, CustomerService customerService) {
+    public AddInitialData(ComplaintTicketService complaintTicketService, TicketingUserService ticketingUserService, TicketingUserRepository ticketingUserRepository, TicketElementService ticketElementService, SolutionTypeService solutionTypeService, CustomerService customerService, AuthenticationManager authenticationManager) {
         this.complaintTicketService = complaintTicketService;
         this.ticketingUserService = ticketingUserService;
         this.ticketElementService = ticketElementService;
@@ -36,6 +39,7 @@ public class AddInitialData implements CommandLineRunner {
         this.ticketingUserRepository = ticketingUserRepository;
         this.solutionTypeService = solutionTypeService;
         this.customerService = customerService;
+        this.authenticationManager = authenticationManager;
     }
 
 
@@ -60,14 +64,16 @@ public class AddInitialData implements CommandLineRunner {
                 () -> new RuntimeException("User not found: " + ticketingUserDto.getUsername())
         );
 
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-                createdUser,
-                createdUser.getPassword(),
-                createdUser.getAuthorities()
-        );
 
         createdUser.setAccountEnabled(true);
         ticketingUserRepository.save(createdUser);
+
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(usernameAdmin, passwordAdmin)
+        );
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
 
         ticketElementService.createTicketElement("Billing complaint");
         ticketElementService.createTicketElement("Service complaint");
