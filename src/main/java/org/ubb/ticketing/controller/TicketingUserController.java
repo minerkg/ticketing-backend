@@ -12,13 +12,10 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.ubb.ticketing.domain.user.TicketingUser;
 import org.ubb.ticketing.dto.user.*;
 import org.ubb.ticketing.exception.PasswordException;
 import org.ubb.ticketing.exception.TicketingSystemException;
@@ -196,64 +193,46 @@ public class TicketingUserController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request, HttpServletResponse response) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-        );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        try {
+            LoginResponse loginResp = ticketingUserService.login(request);
 
+            ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", loginResp.getAccessToken())
+                    .httpOnly(true)
+                    .secure(true)
+                    .path("/user/refresh")
+                    .maxAge(7 * 24 * 60 * 60)
+                    .sameSite("Strict")
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
-        String username = authentication.getName();
-        String role = authentication.getAuthorities().stream()
-                .findFirst()
-                .map(GrantedAuthority::getAuthority)
-                .orElse("USER");
-
-        // Generate tokens with new 2-parameter method
-        String accessToken = jwtService.generateAccessToken(username, role);
-        String refreshToken = jwtService.generateRefreshToken(authentication);
-
-        // Store refresh token in secure HttpOnly cookie
-        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
-                .httpOnly(true)
-                .secure(true)   // set false if testing over HTTP
-                .path("/user/refresh")
-                .maxAge(7 * 24 * 60 * 60)
-                .sameSite("Strict")
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
-
-        // Map the authenticated user to DTO
-        TicketingUserDto user = modelMapper.map((TicketingUser) authentication.getPrincipal(), TicketingUserDto.class);
-
-        var loginresp = LoginResponse.builder()
-                .accessToken(accessToken)
-                .user(user)
-                .build();
-
-        return ResponseEntity.ok(loginresp);
+            return ResponseEntity.ok(
+                    LoginResponse.builder()
+                            .accessToken(loginResp.getAccessToken())
+                            .user(loginResp.getUser())
+                            .build()
+            );
+        } catch (BadCredentialsException e) {
+            logger.error("login bad credentials", e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .build();
+        } catch (Exception e) {
+            logger.error("login internal error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
-
-
-
-
 
 
     @PostMapping("/refresh")
     public ResponseEntity<RefreshResponse> refresh(@CookieValue(name = "refreshToken") String refreshToken) {
-        if (!jwtService.validateRefreshToken(refreshToken)) {
+        RefreshResponse respt = null;
+        try {
+            respt = ticketingUserService.refreshToken(refreshToken);
+        } catch (Exception e) {
+            logger.error("refreshToken internal error", e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        String username = jwtService.extractUsername(refreshToken);
-        String role = jwtService.extractRole(refreshToken);
-
-        String newAccessToken = jwtService.generateAccessToken(username, role);
-
-        var refreshResponse = RefreshResponse.builder()
-                .accessToken(newAccessToken)
-                .build();
-
-        return ResponseEntity.ok(refreshResponse);
+        return ResponseEntity.ok(respt);
     }
 
 

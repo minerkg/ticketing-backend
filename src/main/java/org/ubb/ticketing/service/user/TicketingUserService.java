@@ -1,7 +1,6 @@
 package org.ubb.ticketing.service.user;
 
 
-
 import jakarta.transaction.Transactional;
 import jakarta.validation.ValidationException;
 import org.slf4j.Logger;
@@ -9,7 +8,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
@@ -21,9 +24,7 @@ import org.ubb.ticketing.domain.user.UserRole;
 import org.ubb.ticketing.domain.validator.PasswordValidator;
 import org.ubb.ticketing.domain.validator.TicketingUserDetailUpdateValidator;
 import org.ubb.ticketing.domain.validator.TicketingUserValidator;
-import org.ubb.ticketing.dto.user.TicketingUserDto;
-import org.ubb.ticketing.dto.user.UserDetailUpdateRequest;
-import org.ubb.ticketing.dto.user.UserRegistrationRequest;
+import org.ubb.ticketing.dto.user.*;
 import org.ubb.ticketing.exception.PasswordException;
 import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.exception.UserAlreadyExistsException;
@@ -50,8 +51,9 @@ public class TicketingUserService {
     private final ConfirmationTokenService confirmationTokenService;
     private final NotificationService notificationService;
     private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
 
-    public TicketingUserService(TicketingUserRepository ticketingUserRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator, TicketingUserDetailUpdateValidator ticketingUserUpdateValidator, PasswordValidator passwordValidator, UserDtoConverter userDtoConverter, TokenRepository tokenRepository, ConfirmationTokenService confirmationTokenService, NotificationService notificationService, JwtService jwtService) {
+    public TicketingUserService(TicketingUserRepository ticketingUserRepository, PasswordEncoder passwordEncoder, TicketingUserValidator ticketingUserValidator, TicketingUserDetailUpdateValidator ticketingUserUpdateValidator, PasswordValidator passwordValidator, UserDtoConverter userDtoConverter, TokenRepository tokenRepository, ConfirmationTokenService confirmationTokenService, NotificationService notificationService, JwtService jwtService, AuthenticationManager authenticationManager) {
         this.ticketingUserRepository = ticketingUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.ticketingUserValidator = ticketingUserValidator;
@@ -62,23 +64,31 @@ public class TicketingUserService {
         this.confirmationTokenService = confirmationTokenService;
         this.notificationService = notificationService;
         this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
     }
 
 
-//    public String login(String username, String password) {
-//        TicketingUser user = ticketingUserRepository.findByUsername(username)
-//                .orElseThrow(() -> new UserNotFoundException("Invalid username or password"));
-//
-//        if (!user.isAccountEnabled()) {
-//            throw new DisabledException("Account not confirmed");
-//        }
-//
-//        if (!passwordEncoder.matches(password, user.getPassword())) {
-//            throw new BadCredentialsException("Invalid username or password");
-//        }
-//
-//        return jwtService.generateToken(user.getUsername(), user.getUserRole().name());
-//    }
+    public LoginResponse login(LoginRequest request) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        String username = authentication.getName();
+        String role = authentication.getAuthorities().stream()
+                .findFirst()
+                .map(GrantedAuthority::getAuthority)
+                .orElse("USER");
+
+        String accessToken = jwtService.generateAccessToken(username, role);
+
+        TicketingUserDto user = this.getCurrentUserDto(authentication);
+
+        return LoginResponse.builder()
+                .accessToken(accessToken)
+                .user(user)
+                .build();
+    }
 
 
     @Transactional
@@ -158,10 +168,26 @@ public class TicketingUserService {
     }
 
     public TicketingUserDto getCurrentUserDto(Authentication authentication) {
-        org.springframework.security.oauth2.jwt.Jwt jwt =
-                (org.springframework.security.oauth2.jwt.Jwt) authentication.getPrincipal();
+        Object principal = authentication.getPrincipal();
+        String username;
+        switch (principal) {
+            case org.springframework.security.oauth2.jwt.Jwt jwt -> {
+                // Case: request with JWT token
+                username = jwt.getClaim("sub");
 
-        String username = jwt.getClaim("sub");
+            }
+            case org.springframework.security.core.userdetails.UserDetails userDetails -> {
+                // Case: programmatic login or AuthenticationManager.authenticate()
+                username = userDetails.getUsername();
+            }
+            case String str -> {
+                // Case: principal is just a username
+                username = str;
+            }
+            default -> {
+                throw new IllegalStateException("Unsupported principal type: " + principal.getClass());
+            }
+        }
 
         TicketingUser currentUser = ticketingUserRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
@@ -196,13 +222,14 @@ public class TicketingUserService {
     }
 
 
-
     @Transactional
     public TicketingUserDto updateUserDetails(Authentication authentication, UserDetailUpdateRequest userRequest) {
         logger.info("Updating user details for user {}", userRequest.getUsername());
         Errors userErrors = new BeanPropertyBindingResult(userRequest, "userRequest");
 
-        var currentUser = (TicketingUser) authentication.getPrincipal();
+        var currentUser = this.getCurrentUser(authentication);
+
+
         if (currentUser.getUserRole() != UserRole.ADMIN
                 && !currentUser.getUserId().equals(userRequest.getUserId())) {
             throw new AccessDeniedException("You are not allowed to update this user's details.");
@@ -244,4 +271,20 @@ public class TicketingUserService {
         tokenRepository.delete(confirmationToken);
         return true;
     }
+
+    public RefreshResponse refreshToken(String refreshToken) {
+        if (!jwtService.validateRefreshToken(refreshToken)) {
+            throw new AccessDeniedException("not authorized");
+        }
+        String username = jwtService.extractUsername(refreshToken);
+        String role = jwtService.extractRole(refreshToken);
+
+        String newAccessToken = jwtService.generateAccessToken(username, role);
+
+        return RefreshResponse.builder()
+                .accessToken(newAccessToken)
+                .build();
+    }
+
+
 }
