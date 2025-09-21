@@ -1,5 +1,6 @@
 package org.ubb.ticketing.service.notification;
 
+import org.ubb.ticketing.domain.Comment;
 import org.ubb.ticketing.domain.Ticket;
 import org.ubb.ticketing.domain.user.ConfirmationToken;
 import org.ubb.ticketing.domain.user.TicketingUser;
@@ -13,4 +14,6 @@ public interface NotificationService {
 
     void notifyTicketClosed(Ticket ticket);
     void notifyTokenGenerated(TicketingUser ticketingUser, ConfirmationToken token, String baseUrl, String usecase);
+
+    void notifyCommented(Ticket ticket, Comment comment);
 }

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>New Comment on Ticket</title>
+</head>
+<body style="font-family: Arial, sans-serif; background:#f4f6f9; padding:20px;">
+<table width="100%" style="max-width:600px; margin:auto; background:white; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+    <!-- Header -->
+    <tr>
+        <td style="padding:20px; text-align:center; background:#28a745; color:white; border-radius:8px 8px 0 0;">
+            <h2 style="margin:0;">New Comment on Your Ticket</h2>
+        </td>
+    </tr>
+
+    <!-- Body -->
+    <tr>
+        <td style="padding:20px; color:#333;">
+            <p>Hello <strong>${agent-name}</strong>,</p>
+            <p>A new comment has been added to the ticket you are assigned:</p>
+
+            <table width="100%" style="margin:15px 0; border:1px solid #ddd; border-radius:6px; background:#fafafa;">
+                <tr>
+                    <td style="padding:10px; font-weight:bold; width:120px;">Ticket ID:</td>
+                    <td style="padding:10px;">${ticket-id}</td>
+                </tr>
+                <tr style="background:#fefefe;">
+                    <td style="padding:10px; font-weight:bold;">Date:</td>
+                    <td style="padding:10px;">${date-time}</td>
+                </tr>
+                <tr>
+                    <td style="padding:10px; font-weight:bold;">Commenter:</td>
+                    <td style="padding:10px;">${commenter}</td>
+                </tr>
+                <tr style="background:#fefefe;">
+                    <td style="padding:10px; font-weight:bold;">Comment:</td>
+                    <td style="padding:10px;">${comment-summary}</td>
+                </tr>
+            </table>
+
+            <p>Please log in to review the full discussion and respond if necessary.</p>
+        </td>
+    </tr>
+
+    <!-- Footer -->
+    <tr>
+        <td style="padding:15px; text-align:center; font-size:12px; color:#777; background:#f1f1f1; border-radius:0 0 8px 8px;">
+            You are receiving this notification because this ticket is assigned to you.
+        </td>
+    </tr>
+</table>
+</body>
+</html>
