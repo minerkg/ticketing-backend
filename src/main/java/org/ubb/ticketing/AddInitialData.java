@@ -65,7 +65,7 @@ public class AddInitialData implements CommandLineRunner {
                             () -> new RuntimeException("User not found: " + ticketingUserDto.getUsername()));
                 }
         );
-
+        ticketingUserService.updateUserRole(usernameAdmin, UserRole.ADMIN);
 
         persistedUser.setAccountEnabled(true);
         ticketingUserRepository.save(persistedUser);
@@ -105,7 +105,9 @@ public class AddInitialData implements CommandLineRunner {
                     authentication);
         }
 
+
         ticketingUserService.updateUserRole(usernameAdmin, UserRole.ADMIN);
+
 
 
     }
