@@ -17,7 +17,7 @@ public interface TicketingUserRepository extends JpaRepository<TicketingUser, Lo
 
     Optional<TicketingUser> findByEmail(String email);
 
-    @Query("SELECT new org.ubb.ticketing.dto.user.TicketingUserDto(u.userId, u.username, u.firstName, u.lastName, u.email, u.userRole, u.createdAt) FROM TicketingUser u")
+    @Query("SELECT new org.ubb.ticketing.dto.user.TicketingUserDto(u.userId, u.username, u.firstName, u.lastName, u.email, u.userRole, u.createdAt, u.accountEnabled) FROM TicketingUser u")
     List<TicketingUserDto> findAllUsersWithoutPassword();
 
 

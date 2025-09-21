@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -237,6 +238,9 @@ public class TicketingUserController {
             logger.error("login bad credentials", e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .build();
+        } catch (DisabledException e) {
+            logger.error("login user disabled", e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         } catch (Exception e) {
             logger.error("login internal error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

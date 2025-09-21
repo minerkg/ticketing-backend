@@ -22,5 +22,6 @@ public class TicketingUserDto {
     private String email;
     private UserRole userRole;
     private LocalDateTime createdAt;
+    private boolean accountEnabled;
 
 }
