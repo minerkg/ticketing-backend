@@ -5,6 +5,11 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.ValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
@@ -13,7 +18,6 @@ import org.ubb.ticketing.domain.TicketFactory;
 import org.ubb.ticketing.domain.TicketStatus;
 import org.ubb.ticketing.domain.TicketType;
 import org.ubb.ticketing.domain.complaint.ComplaintTicket;
-import org.ubb.ticketing.domain.user.TicketingUser;
 import org.ubb.ticketing.domain.validator.ComplaintTicketValidator;
 import org.ubb.ticketing.dto.ComplaintTicketRequest;
 import org.ubb.ticketing.dto.TicketCloseRequest;
@@ -45,6 +49,8 @@ public class ComplaintTicketService {
     private final NotificationService notificationService;
     private final CustomerRepository customerRepository;
     private final TicketingUserService ticketingUserService;
+    private static final String DEFAULT_SORT_DIRECTION = "desc";
+
 
     public ComplaintTicketService(ComplaintTicketRepository complaintTicketRepository,
                                   ComplaintTicketValidator complaintTicketValidator,
@@ -74,6 +80,32 @@ public class ComplaintTicketService {
                         () -> new TicketNotFoundException("No complaint ticket with id " + id)
                 );
     }
+
+    public Page<ComplaintTicket> getAllPagedAndFiltered(int page, int size, String keyword, String sortBy, String direction,
+                                                        String status, String assignedTo) {
+
+        Sort sort = direction.equalsIgnoreCase(DEFAULT_SORT_DIRECTION)
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Specification<ComplaintTicket> spec = (root, query, cb) -> cb.conjunction();
+
+        if (keyword != null && !keyword.isBlank()) {
+            spec = spec.and(ComplaintTicketSpecifications.containsKeyword(keyword));
+        }
+
+        if (status != null && !status.isBlank()) {
+            spec = spec.and(ComplaintTicketSpecifications.hasStatus(status));
+        }
+
+        if (assignedTo != null && !assignedTo.isBlank()) {
+            spec = spec.and(ComplaintTicketSpecifications.assignedToUser(assignedTo));
+        }
+
+        return complaintTicketRepository.findAll(spec, pageable);
+    }
+
 
     @Transactional
     public ComplaintTicket createTicket(TicketCreationRequest ticketRequest, Authentication authentication) {
