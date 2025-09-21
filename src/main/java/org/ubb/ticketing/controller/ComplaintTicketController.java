@@ -4,11 +4,16 @@ package org.ubb.ticketing.controller;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
-import org.ubb.ticketing.dto.*;
+import org.ubb.ticketing.domain.complaint.ComplaintTicket;
+import org.ubb.ticketing.dto.ComplaintTicketRequest;
+import org.ubb.ticketing.dto.TicketCloseRequest;
+import org.ubb.ticketing.dto.TicketCreationRequest;
+import org.ubb.ticketing.dto.TicketDto;
 import org.ubb.ticketing.dto.user.TicketingUserDto;
 import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.service.ComplaintTicketService;
@@ -42,6 +47,33 @@ public class ComplaintTicketController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    @GetMapping("/filtered-pages")
+    public ResponseEntity<ApiResponse<Page<TicketDto>>> getComplaintsFilteredAndPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "createdWhen") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction
+    ) {
+        logger.info("getComplaintsFilteredAndPaged accessed in controller");
+        try {
+            Page<ComplaintTicket> complaintTicketsPage =
+                    complaintTicketService.getAllPagedAndFiltered(page, keyword, sortBy, direction);
+
+            Page<TicketDto> dtoPage = complaintTicketsPage
+                    .map(ticket -> modelMapper.map(ticket, TicketDto.class));
+
+            return ResponseEntity.ok(new ApiResponse<>("all tickets paged, filtered and sorted", dtoPage));
+        } catch (TicketingSystemException e) {
+            logger.error("getComplaintsFilteredAndPaged domain error", e);
+            return ResponseEntity.badRequest().body(new ApiResponse<>("ticketing system error", null));
+        } catch (Exception e) {
+            logger.error("getComplaintsFilteredAndPaged unexpected error", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+
 
     @GetMapping("/my-assigned-tickets")
     public ResponseEntity<ApiResponse<List<TicketDto>>> getCurrentUserAssignedTickets(Authentication authentication) {
@@ -110,8 +142,8 @@ public class ComplaintTicketController {
 
     @PutMapping("/close/{ticketId}")
     public ResponseEntity<ApiResponse<TicketDto>> closeTicket(@PathVariable Long ticketId,
-                                                                    @RequestBody TicketCloseRequest ticketCloseRequest,
-                                                                    Authentication authentication) {
+                                                              @RequestBody TicketCloseRequest ticketCloseRequest,
+                                                              Authentication authentication) {
         logger.info("closeTicket accessed in controller");
         try {
             var closedTicket = complaintTicketService.closeTicket(ticketId, authentication, ticketCloseRequest);
@@ -133,8 +165,8 @@ public class ComplaintTicketController {
 
     @PutMapping("update/{ticketId}")
     public ResponseEntity<ApiResponse<TicketDto>> workingOnTicket(@PathVariable Long ticketId,
-                                                                        @RequestBody ComplaintTicketRequest complaintTicketRequest,
-                                                                        Authentication authentication) {
+                                                                  @RequestBody ComplaintTicketRequest complaintTicketRequest,
+                                                                  Authentication authentication) {
         try {
             logger.info("workingOnTicket method accessed in controller");
             var updatedTicket = complaintTicketService.editTicket(ticketId, complaintTicketRequest, authentication);
@@ -174,8 +206,6 @@ public class ComplaintTicketController {
             return ResponseEntity.internalServerError().build();
         }
     }
-
-
 
 
 }
