@@ -11,6 +11,7 @@ import org.ubb.ticketing.domain.customer.Customer;
 import org.ubb.ticketing.domain.user.UserRole;
 import org.ubb.ticketing.dto.TicketCreationRequest;
 import org.ubb.ticketing.dto.user.UserRegistrationRequest;
+import org.ubb.ticketing.repository.ComplaintTicketRepository;
 import org.ubb.ticketing.repository.TicketingUserRepository;
 import org.ubb.ticketing.service.ComplaintTicketService;
 import org.ubb.ticketing.service.CustomerService;
@@ -30,8 +31,9 @@ public class AddInitialData implements CommandLineRunner {
     private final SolutionTypeService solutionTypeService;
     private final CustomerService customerService;
     private final AuthenticationManager authenticationManager;
+    private final ComplaintTicketRepository complaintTicketRepository;
 
-    public AddInitialData(ComplaintTicketService complaintTicketService, TicketingUserService ticketingUserService, TicketingUserRepository ticketingUserRepository, TicketElementService ticketElementService, SolutionTypeService solutionTypeService, CustomerService customerService, AuthenticationManager authenticationManager) {
+    public AddInitialData(ComplaintTicketService complaintTicketService, TicketingUserService ticketingUserService, TicketingUserRepository ticketingUserRepository, TicketElementService ticketElementService, SolutionTypeService solutionTypeService, CustomerService customerService, AuthenticationManager authenticationManager, ComplaintTicketRepository complaintTicketRepository) {
         this.complaintTicketService = complaintTicketService;
         this.ticketingUserService = ticketingUserService;
         this.ticketElementService = ticketElementService;
@@ -40,6 +42,7 @@ public class AddInitialData implements CommandLineRunner {
         this.solutionTypeService = solutionTypeService;
         this.customerService = customerService;
         this.authenticationManager = authenticationManager;
+        this.complaintTicketRepository = complaintTicketRepository;
     }
 
 
@@ -59,12 +62,18 @@ public class AddInitialData implements CommandLineRunner {
                 .email("ors@ticketing.com")
                 .build();
 
-        var persistedUser = ticketingUserRepository.findByUsername(usernameAdmin).orElseGet(() -> {
-                    var ticketingUserDto = ticketingUserService.registerUser(adminUser, "");
-                    return ticketingUserRepository.findByUsername(ticketingUserDto.getUsername()).orElseThrow(
-                            () -> new RuntimeException("User not found: " + ticketingUserDto.getUsername()));
-                }
-        );
+
+        complaintTicketRepository.deleteAll(complaintTicketRepository.findAll());
+
+        ticketingUserRepository.findByUsername(usernameAdmin)
+                .ifPresent(ticketingUserRepository::delete);
+
+
+        var ticketingUserDto = ticketingUserService.registerUser(adminUser, "");
+        var persistedUser = ticketingUserRepository.findByUsername(ticketingUserDto.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found: " + ticketingUserDto.getUsername()));
+
+
         ticketingUserService.updateUserRole(usernameAdmin, UserRole.ADMIN);
 
         persistedUser.setAccountEnabled(true);

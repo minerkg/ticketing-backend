@@ -124,7 +124,7 @@ public class EmailNotificationService implements NotificationService {
 
     @Async
     @Override
-    public void notifyTokenGenerated(TicketingUser user, ConfirmationToken token, String baseUrl) {
+    public void notifyTokenGenerated(TicketingUser user, ConfirmationToken token, String baseUrl,  String usecase) {
         logger.debug("notifyTokenGenerated method accessed");
 
         Map<String, String> placeholders = new HashMap<>();
@@ -132,9 +132,17 @@ public class EmailNotificationService implements NotificationService {
         placeholders.put("last-name", user.getLastName());
         placeholders.put("confirmation-link", baseUrl + "?token=" + token.getToken());
         placeholders.put("expiry-date", token.getExpiryDate().format(EMAIL_DATE_FORMATTER));
+        if (usecase.equals("reset")) {
+            placeholders.put("message", "You requested a password reset. Please use the link belove to reset your password.");
+        }
+        if (usecase.equals("register")) {
+            placeholders.put("message", "You registered successfully. Please use the link belove to confirm your registration.");
+        }
+
+
 
         try {
-            String body = loadEmailTemplate("registration-confirmation.html", placeholders);
+            String body = loadEmailTemplate("token-confirmation.html", placeholders);
 
             MimeMessage message = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);

@@ -125,7 +125,7 @@ public class TicketingUserService {
             var token = confirmationTokenService.generateToken(savedNewUser.getUserId());
             tokenRepository.save(token);
 
-            notificationService.notifyTokenGenerated(savedNewUser, token, baseUrl);
+            notificationService.notifyTokenGenerated(savedNewUser, token, baseUrl, "register");
 
             return userDtoConverter.convertModelToDto(savedNewUser);
 
@@ -178,7 +178,7 @@ public class TicketingUserService {
         var token = confirmationTokenService.generateToken(user.getUserId(), encodedPassword);
         tokenRepository.save(token);
 
-        notificationService.notifyTokenGenerated(user, token, baseUrl);
+        notificationService.notifyTokenGenerated(user, token, baseUrl, "reset");
 
         logger.debug("Password changed for user {}", username);
         //on confirmation, enable account using confirmPasswordChange method and effectively change password

@@ -12,5 +12,5 @@ public interface NotificationService {
     void notifyTicketAssigned(Ticket ticket);
 
     void notifyTicketClosed(Ticket ticket);
-    void notifyTokenGenerated(TicketingUser ticketingUser, ConfirmationToken token, String baseUrl);
+    void notifyTokenGenerated(TicketingUser ticketingUser, ConfirmationToken token, String baseUrl, String usecase);
 }
