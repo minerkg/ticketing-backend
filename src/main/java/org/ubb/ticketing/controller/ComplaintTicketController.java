@@ -53,12 +53,14 @@ public class ComplaintTicketController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "createdWhen") String sortBy,
-            @RequestParam(defaultValue = "desc") String direction
+            @RequestParam(defaultValue = "desc") String direction,
+            @RequestParam(defaultValue = "") String status,
+            @RequestParam(defaultValue = "") String assignedTo
     ) {
         logger.info("getComplaintsFilteredAndPaged accessed in controller");
         try {
             Page<ComplaintTicket> complaintTicketsPage =
-                    complaintTicketService.getAllPagedAndFiltered(page, keyword, sortBy, direction);
+                    complaintTicketService.getAllPagedAndFiltered(page, keyword, sortBy, direction, status, assignedTo);
 
             Page<TicketDto> dtoPage = complaintTicketsPage
                     .map(ticket -> modelMapper.map(ticket, TicketDto.class));

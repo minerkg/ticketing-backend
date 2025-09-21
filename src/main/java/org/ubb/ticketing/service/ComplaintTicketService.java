@@ -82,18 +82,30 @@ public class ComplaintTicketService {
                 );
     }
 
-    public Page<ComplaintTicket> getAllPagedAndFiltered(int page, String keyword, String sortBy, String direction) {
+    public Page<ComplaintTicket> getAllPagedAndFiltered(int page, String keyword, String sortBy, String direction,
+                                                        String status, String assignedTo) {
 
         Sort sort = direction.equalsIgnoreCase(DEFAULT_SORT_DIRECTION)
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
 
         Pageable pageable = PageRequest.of(page, PAGE_SIZE, sort);
-        Specification<ComplaintTicket> spec = ComplaintTicketSpecifications.containsKeyword(keyword);
+        Specification<ComplaintTicket> spec = (root, query, cb) -> cb.conjunction();
+
+        if (keyword != null && !keyword.isBlank()) {
+            spec = spec.and(ComplaintTicketSpecifications.containsKeyword(keyword));
+        }
+
+        if (status != null && !status.isBlank()) {
+            spec = spec.and(ComplaintTicketSpecifications.hasStatus(status));
+        }
+
+        if (assignedTo != null && !assignedTo.isBlank()) {
+            spec = spec.and(ComplaintTicketSpecifications.assignedToUser(assignedTo));
+        }
 
         return complaintTicketRepository.findAll(spec, pageable);
     }
-
 
 
     @Transactional
