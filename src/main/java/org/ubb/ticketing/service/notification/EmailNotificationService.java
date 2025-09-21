@@ -10,6 +10,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.ubb.ticketing.domain.Comment;
 import org.ubb.ticketing.domain.Ticket;
 import org.ubb.ticketing.domain.user.ConfirmationToken;
 import org.ubb.ticketing.domain.user.TicketingUser;
@@ -149,7 +150,7 @@ public class EmailNotificationService implements NotificationService {
 
             message.setFrom(EMAIL_FROM);
             helper.setTo(user.getEmail());
-            helper.setSubject("Confirm your registration");
+            helper.setSubject("Confirm your e-mail address");
             helper.setText(body, true);
 
             javaMailSender.send(message);
@@ -159,6 +160,31 @@ public class EmailNotificationService implements NotificationService {
         }
     }
 
+    @Override
+    public void notifyCommented(Ticket ticket, Comment comment) {
+        logger.debug("notifyTicketAssigned method accessed");
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("agent-name", ticket.getAssignedTo().get().getFirstName());
+        placeholders.put("ticket-id", ticket.getTicketId().toString());
+        placeholders.put("date-time", comment.getCommentedWhen().format(EMAIL_DATE_FORMATTER));
+        placeholders.put("comment-summary", comment.getCommentText());
+        placeholders.put("commenter", comment.getCommenter().getFirstName() + " " + comment.getCommenter().getLastName());
+
+        try {
+            String body = loadEmailTemplate("new-ticket-comment.html", placeholders);
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            message.setFrom(EMAIL_FROM);
+            helper.setTo(ticket.getAssignedTo().get().getEmail());
+            helper.setSubject("New comment on ticket assigned to you");
+            helper.setText(body, true);
+            javaMailSender.send(message);
+        } catch (IOException | MessagingException e) {
+            logger.error("notifyTicketCreated internal error", e);
+            throw new NotificationException(e);
+        }
+    }
 
 
     private String loadEmailTemplate(String filename, Map<String, String> placeholders) throws IOException {

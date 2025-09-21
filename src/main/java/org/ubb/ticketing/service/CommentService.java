@@ -14,6 +14,7 @@ import org.ubb.ticketing.exception.TicketingSystemException;
 import org.ubb.ticketing.exception.UserNotFoundException;
 import org.ubb.ticketing.repository.ComplaintTicketRepository;
 import org.ubb.ticketing.repository.TicketingUserRepository;
+import org.ubb.ticketing.service.notification.NotificationService;
 import org.ubb.ticketing.service.user.TicketingUserService;
 
 import java.time.LocalDateTime;
@@ -27,11 +28,13 @@ public class CommentService {
     private final TicketingUserRepository ticketingUserRepository;
     private final Logger logger = LoggerFactory.getLogger(CommentService.class);
     private final TicketingUserService ticketingUserService;
+    private final NotificationService notificationService;
 
-    public CommentService(ComplaintTicketRepository complaintTicketRepository, TicketingUserRepository ticketingUserRepository, TicketingUserService ticketingUserService) {
+    public CommentService(ComplaintTicketRepository complaintTicketRepository, TicketingUserRepository ticketingUserRepository, TicketingUserService ticketingUserService, NotificationService notificationService) {
         this.complaintTicketRepository = complaintTicketRepository;
         this.ticketingUserRepository = ticketingUserRepository;
         this.ticketingUserService = ticketingUserService;
+        this.notificationService = notificationService;
     }
 
 
@@ -71,11 +74,12 @@ public class CommentService {
         newComment.setTicket(ticket);
         logger.debug("Comment added to ticket {}", ticket.getTicketId());
 
-        //TODO : notify assigned user and createdBy user
+        if (ticket.getAssignedTo().isPresent()) {
+            notificationService.notifyCommented(ticket, newComment);
+        }
 
         return ticket;
     }
 
-    //TODO: add system auto comments
 
 }

@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -23,6 +24,8 @@ import org.ubb.ticketing.exception.UserNotFoundException;
 import org.ubb.ticketing.service.user.JwtService;
 import org.ubb.ticketing.service.user.TicketingUserDetailsService;
 import org.ubb.ticketing.service.user.TicketingUserService;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/user")
@@ -235,6 +238,9 @@ public class TicketingUserController {
             logger.error("login bad credentials", e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .build();
+        } catch (DisabledException e) {
+            logger.error("login user disabled", e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         } catch (Exception e) {
             logger.error("login internal error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -266,6 +272,36 @@ public class TicketingUserController {
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
         return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/enable")
+    public ResponseEntity<Void> enableUserAccount(@RequestBody UUID userId) {
+        logger.debug("enableUserAccount accessed in controller");
+        try {
+            ticketingUserService.enableAccount(userId);
+            return ResponseEntity.ok().build();
+        } catch (TicketingSystemException e) {
+            logger.error("enableUserAccount internal error", e);
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            logger.error("enableUserAccount internal error", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PutMapping("/disable")
+    public ResponseEntity<Void> disableUserAccount(@RequestBody UUID userId) {
+        logger.debug("disableUserAccount accessed in controller");
+        try {
+            ticketingUserService.disableAccount(userId);
+            return ResponseEntity.ok().build();
+        } catch (TicketingSystemException e) {
+            logger.error("disableUserAccount internal error", e);
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            logger.error("disableUserAccount internal error", e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
 
