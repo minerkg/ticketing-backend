@@ -38,6 +38,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class TicketingUserService {
@@ -156,7 +157,6 @@ public class TicketingUserService {
             user.setAccountEnabled(false);
         }
 
-        //Errors errors = new BeanPropertyBindingResult(newPassword, "newPassword");
         Map<String, Object> target = new HashMap<>();
         target.put("password", newPassword);
 
@@ -329,6 +329,33 @@ public class TicketingUserService {
         return RefreshResponse.builder()
                 .accessToken(newAccessToken)
                 .build();
+    }
+
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public void enableAccount(UUID userId) {
+        logger.info("Enabling account for user {}", userId);
+        TicketingUser user = ticketingUserRepository.findByUserId(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        if (user.isAccountEnabled()) {
+            throw new TicketingSystemException("Account already enabled");
+        }
+        user.setAccountEnabled(true);
+        ticketingUserRepository.save(user);
+        logger.info("Account for user {} enabled successfully", user.getUsername());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public void disableAccount(UUID userId) {
+        logger.info("Disabling account for user {}", userId);
+        TicketingUser user = ticketingUserRepository.findByUserId(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        if (!user.isAccountEnabled()) {
+            throw new TicketingSystemException("Account already disabled");
+        }
+        user.setAccountEnabled(false);
+        ticketingUserRepository.save(user);
+        logger.info("Account for user {} disabled successfully", user.getUsername());
     }
 
 

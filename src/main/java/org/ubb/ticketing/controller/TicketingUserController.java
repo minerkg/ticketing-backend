@@ -24,6 +24,8 @@ import org.ubb.ticketing.service.user.JwtService;
 import org.ubb.ticketing.service.user.TicketingUserDetailsService;
 import org.ubb.ticketing.service.user.TicketingUserService;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/user")
 public class TicketingUserController {
@@ -266,6 +268,36 @@ public class TicketingUserController {
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
         return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/enable")
+    public ResponseEntity<Void> enableUserAccount(@RequestBody UUID userId) {
+        logger.debug("enableUserAccount accessed in controller");
+        try {
+            ticketingUserService.enableAccount(userId);
+            return ResponseEntity.ok().build();
+        } catch (TicketingSystemException e) {
+            logger.error("enableUserAccount internal error", e);
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            logger.error("enableUserAccount internal error", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PutMapping("/disable")
+    public ResponseEntity<Void> disableUserAccount(@RequestBody UUID userId) {
+        logger.debug("disableUserAccount accessed in controller");
+        try {
+            ticketingUserService.disableAccount(userId);
+            return ResponseEntity.ok().build();
+        } catch (TicketingSystemException e) {
+            logger.error("disableUserAccount internal error", e);
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            logger.error("disableUserAccount internal error", e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
 
