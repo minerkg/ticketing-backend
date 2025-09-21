@@ -74,7 +74,9 @@ public class CommentService {
         newComment.setTicket(ticket);
         logger.debug("Comment added to ticket {}", ticket.getTicketId());
 
-        notificationService.notifyCommented(ticket, newComment);
+        if (ticket.getAssignedTo().isPresent()) {
+            notificationService.notifyCommented(ticket, newComment);
+        }
 
         return ticket;
     }
