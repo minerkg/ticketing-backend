@@ -49,7 +49,7 @@ public class TicketElementController {
     }
 
     @PutMapping("/deactivate")
-    public ResponseEntity<ApiResponse<TicketElement>> deactivateTicketElement(Long id) {
+    public ResponseEntity<ApiResponse<TicketElement>> deactivateTicketElement(@RequestParam Long id) {
         logger.info("deactivateTicketElement accessed in controller");
         try {
             var ticketElement = ticketElementService.deactivateTicketElement(id);
@@ -65,7 +65,7 @@ public class TicketElementController {
     }
 
     @PutMapping("/reactivate")
-    public ResponseEntity<ApiResponse<TicketElement>> reactivateTicketElement(Long id) {
+    public ResponseEntity<ApiResponse<TicketElement>> reactivateTicketElement(@RequestParam Long id) {
         logger.info("reactivateTicketElement accessed in controller");
         try {
             var ticketElement = ticketElementService.reactivateTicketElement(id);
