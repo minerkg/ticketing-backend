@@ -17,5 +17,14 @@ public class ConfirmationTokenService {
                 .build();
     }
 
+    public ConfirmationToken generateToken(UUID userId, String encodedPassword) {
+        return ConfirmationToken.builder()
+                .token(UUID.randomUUID().toString())
+                .expiryDate(LocalDateTime.now().plusHours(24))
+                .userId(userId)
+                .encodedPassword(encodedPassword)
+                .build();
+    }
+
 
 }

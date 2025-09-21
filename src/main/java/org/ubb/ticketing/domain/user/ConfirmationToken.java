@@ -13,6 +13,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@Table(name = "confirmation_token")
 public class ConfirmationToken {
 
     @Id
@@ -27,6 +28,9 @@ public class ConfirmationToken {
 
     @Column(nullable = false)
     private UUID userId;
+
+    @Column(nullable = true)
+    private String encodedPassword;
 
 
 }
