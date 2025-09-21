@@ -59,14 +59,17 @@ public class AddInitialData implements CommandLineRunner {
                 .email("ors@ticketing.com")
                 .build();
 
-        var ticketingUserDto = ticketingUserService.registerUser(adminUser, "");
-        var createdUser = ticketingUserRepository.findByUsername(ticketingUserDto.getUsername()).orElseThrow(
-                () -> new RuntimeException("User not found: " + ticketingUserDto.getUsername())
+        var persistedUser = ticketingUserRepository.findByUsername(usernameAdmin).orElseGet(() -> {
+                    var ticketingUserDto = ticketingUserService.registerUser(adminUser, "");
+                    return ticketingUserRepository.findByUsername(ticketingUserDto.getUsername()).orElseThrow(
+                            () -> new RuntimeException("User not found: " + ticketingUserDto.getUsername()));
+                }
         );
+        ticketingUserService.updateUserRole(usernameAdmin, UserRole.ADMIN);
 
+        persistedUser.setAccountEnabled(true);
+        ticketingUserRepository.save(persistedUser);
 
-        createdUser.setAccountEnabled(true);
-        ticketingUserRepository.save(createdUser);
 
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(usernameAdmin, passwordAdmin)
@@ -74,34 +77,35 @@ public class AddInitialData implements CommandLineRunner {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
+        if (ticketElementService.getAllTicketElements().isEmpty()) {
+            ticketElementService.createTicketElement("Billing complaint");
+            ticketElementService.createTicketElement("Service complaint");
+            ticketElementService.createTicketElement("Other complaint");
+        }
+        if (solutionTypeService.getSolutionTypes().isEmpty()) {
+            solutionTypeService.createSolutionType("Bill correction");
+            solutionTypeService.createSolutionType("Compensation");
+            solutionTypeService.createSolutionType("Information share");
+        }
 
-        ticketElementService.createTicketElement("Billing complaint");
-        ticketElementService.createTicketElement("Service complaint");
-        ticketElementService.createTicketElement("Other complaint");
-
-        solutionTypeService.createSolutionType("Bill correction");
-        solutionTypeService.createSolutionType("Compensation");
-        solutionTypeService.createSolutionType("Information share");
-
-        Customer customer = Customer.builder()
-                .firstName("Andreea")
-                .lastName("Pop")
-                .email("csiszer_rs@yahoo.com")
-                .phoneNumber("0748882012")
-                .build();
-
-        var savedCustomer = customerService.createCustomer(customer);
-
-        complaintTicketService.createTicket(
-                TicketCreationRequest.builder()
-                        .ticketElementName(ticketElementService.getAllTicketElements().stream().findFirst().get().getName())
-                        .description("Test ticket")
-                        .customerId(savedCustomer.getCustomerId())
-                        .build(),
-                authentication);
+        if (customerService.findAll().isEmpty()) {
+            Customer customer = Customer.builder()
+                    .firstName("Andreea")
+                    .lastName("Pop")
+                    .email("csiszer_rs@yahoo.com")
+                    .phoneNumber("0748882012")
+                    .build();
+            var savedCustomer = customerService.createCustomer(customer);
+            complaintTicketService.createTicket(
+                    TicketCreationRequest.builder()
+                            .ticketElementName(ticketElementService.getAllTicketElements().stream().findFirst().get().getName())
+                            .description("Test ticket")
+                            .customerId(savedCustomer.getCustomerId())
+                            .build(),
+                    authentication);
+        }
 
 
-        ticketingUserService.updateUserRole(ticketingUserDto.getUsername(), UserRole.ADMIN);
     }
 
 }

@@ -68,6 +68,10 @@ dependencies {
     // --- websocket ---
     implementation("org.springframework.boot:spring-boot-starter-websocket:3.5.4")
 
+    // --- db migration ---
+    implementation("org.flywaydb:flyway-core:11.13.0")
+    implementation("org.flywaydb:flyway-database-postgresql:11.13.0")
+
 }
 
 tasks.named('test') {
