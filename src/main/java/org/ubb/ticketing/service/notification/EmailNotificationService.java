@@ -149,7 +149,7 @@ public class EmailNotificationService implements NotificationService {
 
             message.setFrom(EMAIL_FROM);
             helper.setTo(user.getEmail());
-            helper.setSubject("Confirm your registration");
+            helper.setSubject("Confirm your e-mail address");
             helper.setText(body, true);
 
             javaMailSender.send(message);
