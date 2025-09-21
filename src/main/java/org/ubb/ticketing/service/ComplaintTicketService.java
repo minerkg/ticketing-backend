@@ -49,7 +49,6 @@ public class ComplaintTicketService {
     private final NotificationService notificationService;
     private final CustomerRepository customerRepository;
     private final TicketingUserService ticketingUserService;
-    private static final int PAGE_SIZE = 20;
     private static final String DEFAULT_SORT_DIRECTION = "desc";
 
 
@@ -82,14 +81,14 @@ public class ComplaintTicketService {
                 );
     }
 
-    public Page<ComplaintTicket> getAllPagedAndFiltered(int page, String keyword, String sortBy, String direction,
+    public Page<ComplaintTicket> getAllPagedAndFiltered(int page, int size, String keyword, String sortBy, String direction,
                                                         String status, String assignedTo) {
 
         Sort sort = direction.equalsIgnoreCase(DEFAULT_SORT_DIRECTION)
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
 
-        Pageable pageable = PageRequest.of(page, PAGE_SIZE, sort);
+        Pageable pageable = PageRequest.of(page, size, sort);
         Specification<ComplaintTicket> spec = (root, query, cb) -> cb.conjunction();
 
         if (keyword != null && !keyword.isBlank()) {

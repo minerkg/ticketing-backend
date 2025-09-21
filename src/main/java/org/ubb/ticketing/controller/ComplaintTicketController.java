@@ -51,6 +51,7 @@ public class ComplaintTicketController {
     @GetMapping("/filtered-pages")
     public ResponseEntity<ApiResponse<Page<TicketDto>>> getComplaintsFilteredAndPaged(
             @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "createdWhen") String sortBy,
             @RequestParam(defaultValue = "desc") String direction,
@@ -60,10 +61,11 @@ public class ComplaintTicketController {
         logger.info("getComplaintsFilteredAndPaged accessed in controller");
         try {
             Page<ComplaintTicket> complaintTicketsPage =
-                    complaintTicketService.getAllPagedAndFiltered(page, keyword, sortBy, direction, status, assignedTo);
+                    complaintTicketService.getAllPagedAndFiltered(page, size, keyword, sortBy, direction, status, assignedTo);
 
             Page<TicketDto> dtoPage = complaintTicketsPage
                     .map(ticket -> modelMapper.map(ticket, TicketDto.class));
+
 
             return ResponseEntity.ok(new ApiResponse<>("all tickets paged, filtered and sorted", dtoPage));
         } catch (TicketingSystemException e) {
