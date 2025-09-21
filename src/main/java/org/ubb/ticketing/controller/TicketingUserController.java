@@ -74,13 +74,17 @@ public class TicketingUserController {
     }
 
     @PutMapping("/change-password")
-    public ResponseEntity<ApiResponse<String>> changePassword(@RequestBody PasswordChangeRequest request, Authentication authentication) {
+    public ResponseEntity<ApiResponse<String>> changePassword(@RequestBody PasswordChangeRequest request) {
+        String confirmationLink = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/user/passChangeConfirm")
+                .toUriString();
         try {
             ticketingUserService.changePassword(
-                    authentication.getName(),
+                    request.getUsername(),
                     request.getOldPassword(),
-                    request.getNewPassword());
-            logger.info("Password for user {} changed successfully", authentication.getName());
+                    request.getNewPassword(),
+                    confirmationLink);
+            logger.info("Password for user {} changed successfully",request.getUsername());
             return ResponseEntity.ok()
                     .body(new ApiResponse<>("password changed", null));
         } catch (PasswordException e) {
@@ -187,6 +191,22 @@ public class TicketingUserController {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             logger.error("confirmUser internal error", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+
+    @GetMapping("/passChangeConfirm")
+    public ResponseEntity<String> confirmPasswordChange(@RequestParam("token") String token) {
+        logger.debug("confirmPasswordChange accessed in controller");
+        try {
+            var isConfirmed = ticketingUserService.confirmPasswordChange(token);
+            return ResponseEntity.ok("Password change confirmed! You can now log in with your new password.");
+        } catch (TicketingSystemException e) {
+            logger.error("confirmPasswordChange internal error", e);
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            logger.error("confirmPasswordChange internal error", e);
             return ResponseEntity.internalServerError().build();
         }
     }

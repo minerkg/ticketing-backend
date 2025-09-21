@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
+import org.springframework.validation.MapBindingResult;
 import org.ubb.ticketing.converter.UserDtoConverter;
 import org.ubb.ticketing.domain.user.ConfirmationToken;
 import org.ubb.ticketing.domain.user.TicketingUser;
@@ -34,7 +35,9 @@ import org.ubb.ticketing.repository.TokenRepository;
 import org.ubb.ticketing.service.notification.NotificationService;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class TicketingUserService {
@@ -141,12 +144,26 @@ public class TicketingUserService {
     }
 
 
-    @PreAuthorize("isAuthenticated()")
-    public void changePassword(String username, String currentPassword, String newPassword) {
+    public void changePassword(String username, String currentPassword, String newPassword, String baseUrl) {
         TicketingUser user = ticketingUserRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
 
-        Errors errors = new BeanPropertyBindingResult(newPassword, "newPassword");
+        if (!user.isAccountEnabled()) {
+            throw new TicketingSystemException("Account is not enabled, if you want to change the password, " +
+                    "please confirm your account first or contact an administrator");
+        } else {
+            //block account
+            user.setAccountEnabled(false);
+        }
+
+        //Errors errors = new BeanPropertyBindingResult(newPassword, "newPassword");
+        Map<String, Object> target = new HashMap<>();
+        target.put("password", newPassword);
+
+        Errors errors = new MapBindingResult(target, "password");
+        passwordValidator.validate(newPassword, errors);
+
+
         passwordValidator.validate(newPassword, errors);
         if (errors.hasErrors()) {
             throw new PasswordException("Password does not meet security requirements.");
@@ -155,10 +172,16 @@ public class TicketingUserService {
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new PasswordException("Current password is incorrect");
         }
+        var encodedPassword = passwordEncoder.encode(newPassword);
 
-        user.setPassword(passwordEncoder.encode(newPassword));
-        ticketingUserRepository.save(user);
-        logger.info("Password for user {} changed successfully", username);
+        // sending confirmation mail
+        var token = confirmationTokenService.generateToken(user.getUserId(), encodedPassword);
+        tokenRepository.save(token);
+
+        notificationService.notifyTokenGenerated(user, token, baseUrl);
+
+        logger.debug("Password changed for user {}", username);
+        //on confirmation, enable account using confirmPasswordChange method and effectively change password
     }
 
 
@@ -172,16 +195,15 @@ public class TicketingUserService {
         String username;
         switch (principal) {
             case org.springframework.security.oauth2.jwt.Jwt jwt -> {
-                // Case: request with JWT token
+                // request with JWT token
                 username = jwt.getClaim("sub");
-
             }
             case org.springframework.security.core.userdetails.UserDetails userDetails -> {
-                // Case: programmatic login or AuthenticationManager.authenticate()
+                // programmatic login
                 username = userDetails.getUsername();
             }
             case String str -> {
-                // Case: principal is just a username
+                // principal is just a username
                 username = str;
             }
             default -> {
@@ -200,23 +222,21 @@ public class TicketingUserService {
         String username;
         switch (principal) {
             case org.springframework.security.oauth2.jwt.Jwt jwt -> {
-                // Case: request with JWT token
+                // request with JWT token
                 username = jwt.getClaim("sub");
-
             }
             case org.springframework.security.core.userdetails.UserDetails userDetails -> {
-                // Case: programmatic login or AuthenticationManager.authenticate()
+                // programmatic login
                 username = userDetails.getUsername();
             }
             case String str -> {
-                // Case: principal is just a username
+                // principal is just a username
                 username = str;
             }
             default -> {
                 throw new IllegalStateException("Unsupported principal type: " + principal.getClass());
             }
         }
-
         return ticketingUserRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
     }
@@ -271,6 +291,31 @@ public class TicketingUserService {
         tokenRepository.delete(confirmationToken);
         return true;
     }
+
+
+    @Transactional
+    public boolean confirmPasswordChange(String token) {
+        ConfirmationToken confirmationToken = tokenRepository.findByToken(token)
+                .orElseThrow(() -> new TicketingSystemException("Invalid token"));
+
+        if (confirmationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new TicketingSystemException("Token expired");
+        }
+
+        TicketingUser user = ticketingUserRepository.findByUserId(confirmationToken.getUserId()).orElseThrow(
+                () -> new UserNotFoundException("User not found"));
+        if (user.isAccountEnabled()) {
+            throw new TicketingSystemException("Account already confirmed");
+        }
+
+        user.setPassword(confirmationToken.getEncodedPassword());
+        user.setAccountEnabled(true);
+        tokenRepository.delete(confirmationToken);
+        ticketingUserRepository.save(user);
+        logger.info("Password for user {} changed successfully", user.getUsername());
+        return true;
+    }
+
 
     public RefreshResponse refreshToken(String refreshToken) {
         if (!jwtService.validateRefreshToken(refreshToken)) {
