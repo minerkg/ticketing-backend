@@ -106,6 +106,10 @@ public class AddInitialData implements CommandLineRunner {
         }
 
 
+        ticketingUserService.updateUserRole(usernameAdmin, UserRole.ADMIN);
+
+
+
     }
 
 }
